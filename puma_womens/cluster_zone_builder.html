@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cluster Zone Builder</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1a1a1a; color: #ddd;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+/* ---- Toolbar ---- */
+.toolbar {
+  display: flex; align-items: center;
+  padding: 8px 16px; gap: 12px;
+  border-bottom: 1px solid #333; flex-shrink: 0;
+}
+.toolbar h1 { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.tbtn {
+  background: #333; color: #ddd; border: 1px solid #555;
+  padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 13px;
+}
+.tbtn:hover { background: #444; }
+.tbtn.primary { background: #2563eb; border-color: #3b82f6; }
+.tbtn.primary:hover { background: #1d4ed8; }
+.status { margin-left: auto; font-size: 13px; color: #999; white-space: nowrap; }
+
+/* ---- Main split ---- */
+.main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+/* ---- Left column (grid + preview stacked) ---- */
+.left-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* ---- Grid panel (top-left) ---- */
+.grid-panel { flex: 1; overflow-y: auto; padding: 8px; min-height: 0; }
+.grid { display: flex; flex-wrap: wrap; gap: 2px; }
+.sw {
+  position: relative; cursor: pointer;
+  display: flex; align-items: flex-end; justify-content: center;
+  transition: opacity 0.1s;
+}
+body.mode-zones .sw { width: 44px; height: 44px; }
+body.mode-themes .sw { width: 60px; height: 60px; border-radius: 3px; }
+body.mode-zones .grid { gap: 2px; }
+body.mode-themes .grid { gap: 3px; }
+.sw .id {
+  font-size: 8px; opacity: 0.7; line-height: 1;
+  padding: 1px 2px; pointer-events: none;
+}
+body.mode-themes .sw .id { text-shadow: 0 0 3px rgba(0,0,0,0.8); opacity: 0.8; }
+.sw.assigned { opacity: 0.2; }
+.sw.active-member {
+  outline: 2px solid #fff; outline-offset: -2px;
+  opacity: 1; z-index: 1;
+}
+.sw:hover { opacity: 1 !important; z-index: 2; outline: 1px solid rgba(255,255,255,0.5); }
+
+/* ---- Groups panel (right) ---- */
+.groups-panel {
+  width: 400px; overflow-y: auto;
+  border-left: 1px solid #333; padding: 8px; flex-shrink: 0;
+}
+
+/* ---- Minimap (far right) ---- */
+.minimap {
+  width: 32px; flex-shrink: 0; overflow-y: auto;
+  border-right: 1px solid #333;
+  display: flex; flex-direction: column;
+  padding: 2px; gap: 1px;
+}
+.minimap .mm-sw {
+  width: 28px; height: 8px; border-radius: 1px;
+  cursor: pointer; flex-shrink: 0;
+  border: 1px solid transparent;
+}
+.minimap .mm-sw:hover { border-color: rgba(255,255,255,0.5); }
+.minimap .mm-sw.active { border-color: #3b82f6; }
+.gcard {
+  background: #252525; border: 1px solid #333;
+  border-radius: 6px; padding: 10px; margin-bottom: 8px;
+}
+.gcard.active { border-color: #3b82f6; background: #1a2744; }
+.gcard-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.gcolor { width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0; }
+.gname {
+  background: transparent; border: none; color: #ddd;
+  font-size: 14px; font-weight: 600; flex: 1; padding: 2px 4px; border-radius: 3px;
+  min-width: 0;
+}
+.gname:focus { background: #333; outline: 1px solid #555; }
+.gstats { font-size: 12px; color: #888; margin-bottom: 6px; }
+.gswatches { display: flex; flex-wrap: wrap; gap: 2px; }
+.gsw { width: 32px; height: 32px; cursor: pointer; border-radius: 2px; }
+.gsw:hover { outline: 1px solid #fff; z-index: 1; }
+.gactions { display: flex; gap: 4px; margin-top: 8px; }
+.gactions button {
+  background: #333; color: #999; border: 1px solid #444;
+  padding: 2px 8px; border-radius: 3px; font-size: 11px; cursor: pointer;
+}
+.gactions button:hover { background: #444; color: #ddd; }
+.gactions button.danger:hover { background: #7f1d1d; border-color: #991b1b; color: #fca5a5; }
+.new-group-btn {
+  display: block; width: 100%; padding: 10px;
+  background: #252525; border: 1px dashed #555; border-radius: 6px;
+  color: #888; font-size: 14px; cursor: pointer; text-align: center;
+}
+.new-group-btn:hover { background: #333; color: #ddd; border-color: #777; }
+.empty-hint { text-align: center; color: #555; padding: 30px 16px; font-size: 13px; line-height: 1.6; }
+
+/* ---- Preview panel (bottom of left column) ---- */
+#preview {
+  display: none; border-top: 1px solid #333;
+  max-height: 50%; overflow-y: auto;
+  padding: 8px 16px; flex-shrink: 0;
+}
+.pv-hdr { font-size: 13px; color: #aaa; margin-bottom: 6px; }
+.pv-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+.pv-item { position: relative; }
+.pv-item img { display: block; height: 320px; border-radius: 2px; }
+.pv-badge {
+  position: absolute; top: 2px; left: 2px;
+  background: rgba(0,0,0,0.75); color: #fff;
+  font-size: 9px; padding: 1px 4px; border-radius: 2px;
+}
+
+/* ---- Zone preview (cluster swatches per zone) ---- */
+.pv-zone { margin-bottom: 10px; }
+.pv-zone-hdr {
+  font-size: 12px; color: #aaa; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+.pv-zone-sw { width: 16px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+.pv-clusters { display: flex; flex-wrap: wrap; gap: 2px; }
+.pv-csw { width: 28px; height: 28px; border-radius: 2px; }
+
+/* ---- Mode toggle ---- */
+.mode-toggle {
+  display: flex; border: 1px solid #555; border-radius: 4px; overflow: hidden;
+}
+.mode-toggle button {
+  background: #333; color: #999; border: none;
+  padding: 5px 12px; font-size: 12px; cursor: pointer;
+}
+.mode-toggle button:hover { background: #444; color: #ddd; }
+.mode-toggle button.active { background: #2563eb; color: #fff; }
+
+/* ---- Tooltip ---- */
+#tip {
+  display: none; position: fixed;
+  background: rgba(15,15,15,0.95); border: 1px solid #666;
+  padding: 8px 12px; border-radius: 4px;
+  font-size: 13px; line-height: 1.5; color: #ddd;
+  pointer-events: none; z-index: 200; max-width: 260px;
+}
+
+/* ---- Drag and drop ---- */
+.gcard { cursor: grab; transition: opacity 0.15s, box-shadow 0.15s; }
+.gcard:active { cursor: grabbing; }
+.gcard.dragging { opacity: 0.3; }
+.gcard.drop-above { box-shadow: inset 0 3px 0 0 #3b82f6; }
+.gcard.drop-below { box-shadow: inset 0 -3px 0 0 #3b82f6; }
+.gcard.drop-target { background: #1a3a2a !important; border-color: #22c55e !important; }
+.gsw[draggable] { transition: opacity 0.15s; }
+.gsw.dragging { opacity: 0.3; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>Cluster Zone Builder</h1>
+  <div class="mode-toggle">
+    <button id="mode-zones" class="active" onclick="setMode('zones')">Zones</button>
+    <button id="mode-themes" onclick="setMode('themes')">Themes</button>
+  </div>
+  <button class="tbtn primary" id="btn-new" onclick="createGroup()">+ New Group (N)</button>
+  <button class="tbtn" onclick="exportJSON()">Export JSON (E)</button>
+  <button class="tbtn" onclick="document.getElementById('fimport').click()">Import JSON</button>
+  <button class="tbtn" onclick="sortGroupsByPerceptualDistance()">Sort by ΔE</button>
+  <button class="tbtn" onclick="sortGroupsByHSBClass()">Sort by HSB</button>
+  <button class="tbtn" onclick="clearAll()">Clear All</button>
+  <div class="status" id="status"></div>
+</div>
+
+<div class="main">
+  <div class="left-col">
+    <div class="grid-panel" id="grid-panel">
+      <div class="grid" id="grid"></div>
+    </div>
+    <div id="preview"></div>
+  </div>
+  <div class="minimap" id="minimap"></div>
+  <div class="groups-panel" id="groups-panel"></div>
+</div>
+<div id="tip"></div>
+<input type="file" id="fimport" style="display:none" accept=".json" onchange="handleImport(this)">
+
+<script>
+// ============================
+// DATA (embedded by Python)
+// ============================
+const CLUSTERS = [{"id":65,"hex":"#cd287b","n":18,"L":47.1,"a":67.6,"b":-6.0},{"id":60,"hex":"#b21961","n":14,"L":39.9,"a":62.0,"b":-0.8},{"id":59,"hex":"#a32268","n":14,"L":37.9,"a":56.7,"b":-8.5},{"id":62,"hex":"#96154e","n":18,"L":33.1,"a":53.8,"b":1.2},{"id":63,"hex":"#7a0f41","n":12,"L":26.4,"a":46.8,"b":-1.0},{"id":61,"hex":"#8a3a43","n":32,"L":35.9,"a":34.6,"b":11.9},{"id":56,"hex":"#94252e","n":30,"L":33.8,"a":46.3,"b":22.3},{"id":58,"hex":"#871c21","n":17,"L":29.8,"a":44.6,"b":25.7},{"id":57,"hex":"#7a1b0d","n":3,"L":26.8,"a":40.1,"b":33.3},{"id":55,"hex":"#90391d","n":10,"L":35.9,"a":35.2,"b":35.0},{"id":54,"hex":"#93382c","n":5,"L":36.4,"a":37.6,"b":26.8},{"id":52,"hex":"#a94d3b","n":5,"L":44.4,"a":36.5,"b":28.6},{"id":47,"hex":"#af272c","n":47,"L":39.3,"a":54.0,"b":31.9},{"id":48,"hex":"#c71927","n":125,"L":42.9,"a":64.0,"b":39.9},{"id":50,"hex":"#d81c3b","n":5,"L":46.8,"a":68.7,"b":33.6},{"id":51,"hex":"#be3c48","n":12,"L":45.4,"a":52.5,"b":23.1},{"id":49,"hex":"#c4544e","n":38,"L":50.4,"a":44.6,"b":26.1},{"id":116,"hex":"#e54b55","n":29,"L":54.6,"a":60.2,"b":28.5},{"id":45,"hex":"#f43e37","n":15,"L":55.1,"a":67.7,"b":46.6},{"id":46,"hex":"#de272b","n":84,"L":48.6,"a":67.5,"b":45.1},{"id":159,"hex":"#cd5c27","n":5,"L":52.9,"a":41.8,"b":49.8},{"id":161,"hex":"#b26b45","n":18,"L":52.5,"a":24.7,"b":33.3},{"id":163,"hex":"#9b5e2a","n":9,"L":46.0,"a":20.6,"b":39.2},{"id":53,"hex":"#94573b","n":19,"L":43.6,"a":22.2,"b":26.8},{"id":162,"hex":"#b66c20","n":2,"L":52.8,"a":23.9,"b":51.5},{"id":160,"hex":"#997038","n":11,"L":50.4,"a":9.7,"b":37.1},{"id":36,"hex":"#766f6a","n":14,"L":47.5,"a":1.5,"b":3.6},{"id":37,"hex":"#6e6055","n":6,"L":41.9,"a":4.0,"b":8.3},{"id":35,"hex":"#886b5b","n":13,"L":47.7,"a":9.2,"b":13.3},{"id":174,"hex":"#92755e","n":15,"L":51.7,"a":7.6,"b":17.0},{"id":165,"hex":"#7a6645","n":16,"L":44.5,"a":3.1,"b":21.5},{"id":33,"hex":"#855f57","n":14,"L":44.3,"a":13.9,"b":10.6},{"id":32,"hex":"#725559","n":57,"L":39.5,"a":12.5,"b":2.5},{"id":34,"hex":"#7f6c70","n":8,"L":47.5,"a":8.2,"b":0.5},{"id":38,"hex":"#63473b","n":34,"L":33.1,"a":10.5,"b":11.9},{"id":39,"hex":"#6e4625","n":5,"L":33.9,"a":13.4,"b":26.9},{"id":40,"hex":"#5d4e2e","n":1,"L":34.1,"a":1.0,"b":21.4},{"id":41,"hex":"#3f361f","n":16,"L":23.3,"a":0.3,"b":15.7},{"id":43,"hex":"#593224","n":10,"L":25.5,"a":16.0,"b":16.3},{"id":44,"hex":"#493126","n":35,"L":23.0,"a":9.7,"b":11.3},{"id":42,"hex":"#412a27","n":43,"L":19.9,"a":10.5,"b":6.3},{"id":21,"hex":"#543b3e","n":9,"L":28.1,"a":11.6,"b":2.4},{"id":26,"hex":"#321816","n":6,"L":12.0,"a":13.1,"b":6.8},{"id":27,"hex":"#3a121b","n":12,"L":12.1,"a":20.8,"b":3.5},{"id":25,"hex":"#4d1922","n":84,"L":17.5,"a":25.5,"b":6.9},{"id":24,"hex":"#5f1f27","n":115,"L":22.4,"a":29.5,"b":10.1},{"id":20,"hex":"#5a2f35","n":9,"L":25.4,"a":20.0,"b":4.8},{"id":22,"hex":"#4d293d","n":19,"L":22.3,"a":20.0,"b":-5.5},{"id":23,"hex":"#3e242f","n":63,"L":18.1,"a":14.2,"b":-1.8},{"id":7,"hex":"#3d354c","n":43,"L":24.2,"a":8.9,"b":-12.4},{"id":9,"hex":"#29243a","n":28,"L":15.8,"a":8.6,"b":-13.7},{"id":8,"hex":"#222942","n":39,"L":17.4,"a":5.0,"b":-16.9},{"id":4,"hex":"#242e3f","n":25,"L":18.9,"a":0.9,"b":-12.0},{"id":12,"hex":"#1b1f2e","n":16,"L":12.1,"a":2.7,"b":-10.5},{"id":13,"hex":"#211f27","n":226,"L":12.7,"a":3.0,"b":-4.8},{"id":18,"hex":"#2e2122","n":26,"L":14.6,"a":6.4,"b":1.8},{"id":17,"hex":"#2a231e","n":35,"L":14.5,"a":2.5,"b":4.7},{"id":10,"hex":"#232220","n":111,"L":13.5,"a":-0.3,"b":1.5},{"id":16,"hex":"#272628","n":440,"L":15.8,"a":0.8,"b":-0.9},{"id":14,"hex":"#2a2727","n":500,"L":16.2,"a":1.6,"b":0.8},{"id":19,"hex":"#211d1d","n":1050,"L":11.5,"a":2.0,"b":0.9},{"id":11,"hex":"#1a1919","n":1302,"L":9.1,"a":0.7,"b":0.3},{"id":15,"hex":"#31302e","n":92,"L":20.1,"a":0.0,"b":1.1},{"id":2,"hex":"#3e423b","n":11,"L":27.7,"a":-2.9,"b":3.5},{"id":1,"hex":"#40454d","n":40,"L":29.4,"a":-0.6,"b":-5.1},{"id":3,"hex":"#444241","n":125,"L":28.3,"a":0.7,"b":0.5},{"id":6,"hex":"#3e3b41","n":66,"L":25.5,"a":2.6,"b":-3.4},{"id":5,"hex":"#4a4852","n":55,"L":31.5,"a":2.9,"b":-5.4},{"id":31,"hex":"#554a50","n":42,"L":33.0,"a":5.6,"b":-1.9},{"id":30,"hex":"#574f4b","n":29,"L":34.3,"a":2.8,"b":3.1},{"id":29,"hex":"#5f5e5f","n":35,"L":40.3,"a":0.4,"b":-0.6},{"id":28,"hex":"#595c6c","n":15,"L":39.5,"a":2.9,"b":-9.8},{"id":75,"hex":"#4782bb","n":18,"L":52.9,"a":-1.2,"b":-35.9},{"id":79,"hex":"#236fb5","n":17,"L":45.9,"a":2.3,"b":-43.4},{"id":78,"hex":"#496bb7","n":10,"L":46.2,"a":11.7,"b":-44.3},{"id":77,"hex":"#517096","n":18,"L":46.4,"a":-0.4,"b":-24.2},{"id":76,"hex":"#245bac","n":33,"L":39.3,"a":11.9,"b":-48.6},{"id":80,"hex":"#5f6399","n":56,"L":43.8,"a":12.3,"b":-30.1},{"id":88,"hex":"#3a485d","n":17,"L":30.5,"a":0.2,"b":-14.2},{"id":87,"hex":"#3b4f6d","n":46,"L":33.4,"a":1.4,"b":-19.9},{"id":90,"hex":"#484a75","n":36,"L":33.2,"a":11.0,"b":-25.1},{"id":89,"hex":"#383c5e","n":42,"L":26.5,"a":7.8,"b":-20.9},{"id":86,"hex":"#1a3d79","n":27,"L":26.6,"a":10.8,"b":-38.3},{"id":85,"hex":"#434492","n":69,"L":33.0,"a":22.6,"b":-43.4},{"id":84,"hex":"#313077","n":27,"L":24.2,"a":23.2,"b":-41.0},{"id":83,"hex":"#282462","n":14,"L":18.5,"a":21.8,"b":-36.3},{"id":81,"hex":"#783ea1","n":4,"L":38.1,"a":43.3,"b":-43.7},{"id":72,"hex":"#093730","n":19,"L":20.2,"a":-16.7,"b":-0.5},{"id":74,"hex":"#1d3d3f","n":66,"L":23.8,"a":-11.3,"b":-4.6},{"id":68,"hex":"#113237","n":67,"L":19.0,"a":-10.4,"b":-6.5},{"id":67,"hex":"#12282b","n":32,"L":14.6,"a":-7.4,"b":-5.2},{"id":69,"hex":"#044657","n":27,"L":27.2,"a":-12.1,"b":-15.4},{"id":70,"hex":"#023a55","n":1,"L":22.9,"a":-5.8,"b":-20.7},{"id":110,"hex":"#206f65","n":7,"L":42.5,"a":-26.2,"b":-1.3},{"id":109,"hex":"#035850","n":2,"L":33.2,"a":-24.4,"b":-2.0},{"id":73,"hex":"#2d4c4a","n":14,"L":30.1,"a":-11.8,"b":-2.7},{"id":71,"hex":"#0e5962","n":23,"L":34.2,"a":-17.7,"b":-11.6},{"id":107,"hex":"#0b7186","n":7,"L":44.0,"a":-18.9,"b":-18.5},{"id":158,"hex":"#e5771b","n":15,"L":61.7,"a":37.3,"b":63.3},{"id":150,"hex":"#ee9e6f","n":11,"L":72.4,"a":24.9,"b":36.6},{"id":120,"hex":"#f09578","n":11,"L":70.6,"a":31.2,"b":29.6},{"id":154,"hex":"#f3c79b","n":36,"L":83.3,"a":9.3,"b":28.1},{"id":155,"hex":"#e5c3a7","n":30,"L":81.2,"a":7.9,"b":18.6},{"id":157,"hex":"#cdb18b","n":36,"L":73.8,"a":4.5,"b":22.9},{"id":156,"hex":"#c3ae95","n":68,"L":72.3,"a":3.9,"b":15.2},{"id":151,"hex":"#d6a780","n":21,"L":72.1,"a":12.4,"b":26.6},{"id":176,"hex":"#bf9271","n":4,"L":64.2,"a":12.5,"b":24.1},{"id":177,"hex":"#b69b7a","n":67,"L":65.9,"a":5.0,"b":21.1},{"id":175,"hex":"#a48d72","n":84,"L":60.1,"a":4.8,"b":17.6},{"id":149,"hex":"#eeb06a","n":8,"L":76.5,"a":14.8,"b":44.2},{"id":148,"hex":"#d49124","n":11,"L":65.5,"a":16.7,"b":62.7},{"id":153,"hex":"#e1b349","n":17,"L":75.5,"a":5.7,"b":58.6},{"id":152,"hex":"#ebcd6a","n":10,"L":83.4,"a":-1.4,"b":52.8},{"id":216,"hex":"#deda7a","n":17,"L":85.8,"a":-12.1,"b":47.7},{"id":215,"hex":"#c2c05d","n":33,"L":76.3,"a":-12.9,"b":49.4},{"id":217,"hex":"#bbcd67","n":12,"L":79.3,"a":-20.8,"b":48.0},{"id":201,"hex":"#b6e6c9","n":2,"L":87.6,"a":-21.2,"b":9.4},{"id":202,"hex":"#cdeadf","n":15,"L":90.6,"a":-11.5,"b":2.3},{"id":206,"hex":"#b9d1c1","n":25,"L":81.8,"a":-10.9,"b":4.9},{"id":205,"hex":"#aebf9d","n":5,"L":75.4,"a":-12.1,"b":15.1},{"id":212,"hex":"#bbb983","n":27,"L":74.3,"a":-7.8,"b":27.5},{"id":219,"hex":"#ccd6a1","n":9,"L":83.8,"a":-11.9,"b":25.2},{"id":220,"hex":"#dfdba7","n":110,"L":86.8,"a":-7.0,"b":26.1},{"id":195,"hex":"#e2d3ae","n":30,"L":85.1,"a":-0.7,"b":20.3},{"id":196,"hex":"#cfcfaf","n":19,"L":82.5,"a":-5.3,"b":16.1},{"id":197,"hex":"#ebe8c9","n":12,"L":91.6,"a":-4.0,"b":15.2},{"id":218,"hex":"#cdebaa","n":26,"L":89.8,"a":-21.1,"b":28.3},{"id":211,"hex":"#979463","n":25,"L":60.7,"a":-7.1,"b":26.5},{"id":210,"hex":"#9a9577","n":10,"L":61.5,"a":-2.8,"b":16.4},{"id":213,"hex":"#a3a18a","n":72,"L":66.1,"a":-3.3,"b":12.5},{"id":214,"hex":"#b3af92","n":80,"L":71.3,"a":-3.6,"b":15.2},{"id":189,"hex":"#b6b2a5","n":18,"L":72.8,"a":-1.1,"b":7.5},{"id":103,"hex":"#7f9591","n":42,"L":60.1,"a":-8.6,"b":-0.3},{"id":102,"hex":"#8ba7a6","n":24,"L":66.5,"a":-9.7,"b":-2.9},{"id":203,"hex":"#96b5ad","n":15,"L":71.5,"a":-12.4,"b":0.7},{"id":204,"hex":"#a4b8b2","n":36,"L":73.3,"a":-7.9,"b":0.7},{"id":192,"hex":"#a9bec3","n":97,"L":75.8,"a":-6.0,"b":-5.2},{"id":193,"hex":"#a5ccd1","n":9,"L":79.7,"a":-11.9,"b":-6.8},{"id":179,"hex":"#b7c7da","n":63,"L":79.8,"a":-1.6,"b":-11.4},{"id":180,"hex":"#aeb7c6","n":28,"L":74.5,"a":-0.3,"b":-8.3},{"id":178,"hex":"#c1c2d1","n":140,"L":79.0,"a":2.6,"b":-7.5},{"id":184,"hex":"#d1d4e1","n":61,"L":85.3,"a":1.5,"b":-6.8},{"id":181,"hex":"#d3d2d6","n":197,"L":84.6,"a":0.9,"b":-1.8},{"id":183,"hex":"#e6e5e6","n":658,"L":91.2,"a":0.6,"b":-0.1},{"id":185,"hex":"#eae9ef","n":107,"L":92.8,"a":1.6,"b":-2.8},{"id":187,"hex":"#e9ecf1","n":46,"L":93.6,"a":-0.2,"b":-2.8},{"id":188,"hex":"#c8d4db","n":121,"L":84.5,"a":-2.6,"b":-4.9},{"id":186,"hex":"#cad4d1","n":44,"L":84.2,"a":-3.9,"b":0.3},{"id":194,"hex":"#c6dadb","n":36,"L":85.9,"a":-6.6,"b":-2.8},{"id":198,"hex":"#d8cdbc","n":328,"L":83.0,"a":1.0,"b":9.5},{"id":200,"hex":"#e1d6c8","n":292,"L":86.4,"a":1.4,"b":8.2},{"id":199,"hex":"#e3dfd7","n":224,"L":89.1,"a":-0.0,"b":4.5},{"id":182,"hex":"#c7c5c3","n":84,"L":79.7,"a":0.6,"b":1.0},{"id":191,"hex":"#bab7b5","n":232,"L":74.7,"a":0.8,"b":1.1},{"id":190,"hex":"#acaba9","n":94,"L":70.1,"a":-0.1,"b":1.2},{"id":166,"hex":"#9c9b9b","n":21,"L":64.4,"a":0.4,"b":0.1},{"id":106,"hex":"#51889b","n":3,"L":54.0,"a":-12.9,"b":-15.5},{"id":101,"hex":"#69a0ac","n":12,"L":62.9,"a":-14.8,"b":-11.9},{"id":97,"hex":"#8dbae6","n":32,"L":74.0,"a":-3.6,"b":-27.0},{"id":100,"hex":"#89aec5","n":7,"L":69.4,"a":-6.8,"b":-16.0},{"id":96,"hex":"#7693cb","n":5,"L":61.0,"a":4.1,"b":-31.9},{"id":99,"hex":"#88a1bd","n":41,"L":65.3,"a":-1.9,"b":-17.4},{"id":94,"hex":"#7b93ab","n":81,"L":60.0,"a":-2.5,"b":-15.5},{"id":98,"hex":"#67a1d0","n":11,"L":64.2,"a":-5.4,"b":-30.2},{"id":91,"hex":"#96a6da","n":24,"L":68.7,"a":6.8,"b":-28.5},{"id":95,"hex":"#8c88dd","n":8,"L":60.5,"a":21.7,"b":-43.0},{"id":93,"hex":"#9c8fc3","n":33,"L":62.3,"a":16.0,"b":-25.2},{"id":92,"hex":"#ad9bc6","n":33,"L":66.9,"a":14.9,"b":-19.7},{"id":138,"hex":"#e48dcd","n":10,"L":69.5,"a":42.0,"b":-19.2},{"id":139,"hex":"#ea6eae","n":5,"L":63.4,"a":54.8,"b":-11.0},{"id":140,"hex":"#c668ae","n":31,"L":57.2,"a":46.7,"b":-20.6},{"id":64,"hex":"#b2589e","n":45,"L":50.7,"a":45.8,"b":-21.9},{"id":82,"hex":"#9459a4","n":7,"L":47.4,"a":36.6,"b":-30.5},{"id":145,"hex":"#97849a","n":40,"L":57.7,"a":10.9,"b":-8.7},{"id":144,"hex":"#897588","n":12,"L":51.9,"a":10.9,"b":-7.2},{"id":146,"hex":"#847298","n":7,"L":51.0,"a":14.8,"b":-18.2},{"id":147,"hex":"#7f7f9a","n":12,"L":54.1,"a":6.1,"b":-14.6},{"id":141,"hex":"#9193a7","n":19,"L":61.6,"a":3.3,"b":-10.9},{"id":167,"hex":"#807f80","n":21,"L":53.6,"a":0.5,"b":-0.2},{"id":105,"hex":"#6f7378","n":8,"L":48.5,"a":-0.7,"b":-3.2},{"id":168,"hex":"#928d88","n":40,"L":59.1,"a":0.9,"b":3.4},{"id":171,"hex":"#a49388","n":18,"L":62.3,"a":4.2,"b":8.0},{"id":173,"hex":"#968374","n":12,"L":56.2,"a":4.6,"b":10.6},{"id":170,"hex":"#a58578","n":18,"L":58.3,"a":10.6,"b":11.3},{"id":169,"hex":"#b39189","n":28,"L":63.3,"a":11.2,"b":9.3},{"id":172,"hex":"#b29f9e","n":9,"L":67.2,"a":6.9,"b":3.3},{"id":142,"hex":"#ab96a3","n":32,"L":64.3,"a":10.2,"b":-3.8},{"id":143,"hex":"#aa9baf","n":73,"L":66.1,"a":9.0,"b":-8.2},{"id":124,"hex":"#b1808b","n":7,"L":58.7,"a":20.6,"b":1.6},{"id":128,"hex":"#f1b19f","n":4,"L":77.9,"a":20.7,"b":18.5},{"id":132,"hex":"#f4c9c2","n":31,"L":84.7,"a":14.2,"b":9.0},{"id":133,"hex":"#dcc5c5","n":75,"L":81.6,"a":8.0,"b":2.8},{"id":134,"hex":"#d1b8bb","n":43,"L":77.1,"a":9.6,"b":1.9},{"id":135,"hex":"#d8c1cd","n":44,"L":80.5,"a":10.3,"b":-3.0},{"id":137,"hex":"#f1c2d6","n":28,"L":83.2,"a":19.8,"b":-3.6},{"id":136,"hex":"#f6afcb","n":9,"L":79.1,"a":29.8,"b":-3.5},{"id":125,"hex":"#f093af","n":36,"L":71.3,"a":38.3,"b":0.4},{"id":130,"hex":"#f0a0aa","n":16,"L":74.1,"a":31.0,"b":6.9},{"id":129,"hex":"#eca9a8","n":33,"L":75.8,"a":24.6,"b":10.3},{"id":131,"hex":"#dfabb4","n":92,"L":75.1,"a":20.6,"b":2.6},{"id":123,"hex":"#d098a4","n":67,"L":68.7,"a":22.5,"b":2.1},{"id":122,"hex":"#f56c62","n":28,"L":62.7,"a":51.7,"b":31.6},{"id":121,"hex":"#f57579","n":45,"L":64.7,"a":49.3,"b":21.1},{"id":126,"hex":"#df8189","n":53,"L":64.6,"a":37.0,"b":11.6},{"id":127,"hex":"#f78f93","n":60,"L":70.7,"a":39.8,"b":15.1},{"id":119,"hex":"#d86574","n":15,"L":57.4,"a":46.8,"b":13.7},{"id":118,"hex":"#f8627c","n":7,"L":61.9,"a":59.6,"b":16.1},{"id":117,"hex":"#f34c85","n":8,"L":58.2,"a":67.3,"b":5.0},{"id":66,"hex":"#e1366f","n":12,"L":51.8,"a":68.0,"b":8.9},{"id":164,"hex":"#767151","n":5,"L":47.6,"a":-3.7,"b":18.5},{"id":112,"hex":"#7f815b","n":4,"L":53.1,"a":-7.6,"b":20.6},{"id":111,"hex":"#5c7c64","n":6,"L":49.3,"a":-16.5,"b":9.4},{"id":113,"hex":"#76806e","n":10,"L":52.4,"a":-7.0,"b":8.2},{"id":104,"hex":"#617674","n":17,"L":48.2,"a":-7.9,"b":-1.7},{"id":115,"hex":"#17815b","n":17,"L":47.9,"a":-38.0,"b":12.3},{"id":108,"hex":"#146946","n":17,"L":39.2,"a":-33.5,"b":12.8},{"id":209,"hex":"#27b2a1","n":18,"L":65.9,"a":-39.8,"b":-1.2},{"id":208,"hex":"#0f9d89","n":15,"L":58.1,"a":-38.5,"b":0.4},{"id":114,"hex":"#2b9a67","n":11,"L":56.9,"a":-43.1,"b":18.2},{"id":207,"hex":"#3dbe61","n":7,"L":68.5,"a":-55.0,"b":36.8}];
+const PRODUCTS = {"65":[{"iid":62593,"L":47.4,"a":67.5,"b":-6.8,"src":"zone_builder_thumbs/65_62593.jpg"},{"iid":6557,"L":44.2,"a":66.8,"b":-2.7,"src":"zone_builder_thumbs/65_6557.jpg"},{"iid":34894,"L":47.8,"a":67.8,"b":-6.6,"src":"zone_builder_thumbs/65_34894.jpg"},{"iid":6135,"L":47.8,"a":67.8,"b":-6.6,"src":"zone_builder_thumbs/65_6135.jpg"}],"60":[{"iid":8146,"L":39.6,"a":61.9,"b":-2.6,"src":"zone_builder_thumbs/60_8146.jpg"},{"iid":6443,"L":42.2,"a":63.1,"b":6.8,"src":"zone_builder_thumbs/60_6443.jpg"},{"iid":19544,"L":39.3,"a":61.6,"b":1.3,"src":"zone_builder_thumbs/60_19544.jpg"},{"iid":6685,"L":39.4,"a":62.1,"b":-3.0,"src":"zone_builder_thumbs/60_6685.jpg"}],"59":[{"iid":62412,"L":38.4,"a":55.4,"b":-9.7,"src":"zone_builder_thumbs/59_62412.jpg"},{"iid":6163,"L":39.8,"a":61.2,"b":-8.0,"src":"zone_builder_thumbs/59_6163.jpg"},{"iid":6384,"L":34.8,"a":57.5,"b":-5.3,"src":"zone_builder_thumbs/59_6384.jpg"},{"iid":39916,"L":38.7,"a":55.4,"b":-9.7,"src":"zone_builder_thumbs/59_39916.jpg"}],"62":[{"iid":10928,"L":33.6,"a":52.6,"b":-0.0,"src":"zone_builder_thumbs/62_10928.jpg"},{"iid":56607,"L":33.9,"a":57.4,"b":4.2,"src":"zone_builder_thumbs/62_56607.jpg"},{"iid":61949,"L":31.2,"a":53.6,"b":5.2,"src":"zone_builder_thumbs/62_61949.jpg"},{"iid":11325,"L":32.4,"a":49.3,"b":0.6,"src":"zone_builder_thumbs/62_11325.jpg"},{"iid":8093,"L":33.1,"a":52.1,"b":-2.5,"src":"zone_builder_thumbs/62_8093.jpg"},{"iid":50955,"L":33.2,"a":57.6,"b":3.8,"src":"zone_builder_thumbs/62_50955.jpg"},{"iid":61392,"L":33.8,"a":57.3,"b":4.1,"src":"zone_builder_thumbs/62_61392.jpg"}],"63":[{"iid":62401,"L":24.5,"a":47.0,"b":0.0,"src":"zone_builder_thumbs/63_62401.jpg"},{"iid":3944,"L":29.2,"a":47.7,"b":-4.4,"src":"zone_builder_thumbs/63_3944.jpg"},{"iid":45456,"L":28.6,"a":46.3,"b":-0.5,"src":"zone_builder_thumbs/63_45456.jpg"},{"iid":55667,"L":24.4,"a":45.5,"b":1.8,"src":"zone_builder_thumbs/63_55667.jpg"},{"iid":50900,"L":24.3,"a":46.9,"b":0.0,"src":"zone_builder_thumbs/63_50900.jpg"},{"iid":61281,"L":24.4,"a":45.5,"b":1.8,"src":"zone_builder_thumbs/63_61281.jpg"}],"61":[{"iid":45594,"L":36.2,"a":35.4,"b":9.6,"src":"zone_builder_thumbs/61_45594.jpg"},{"iid":40008,"L":38.5,"a":26.0,"b":8.6,"src":"zone_builder_thumbs/61_40008.jpg"},{"iid":40587,"L":32.9,"a":36.7,"b":16.2,"src":"zone_builder_thumbs/61_40587.jpg"},{"iid":46378,"L":33.6,"a":30.6,"b":9.4,"src":"zone_builder_thumbs/61_46378.jpg"},{"iid":34524,"L":37.9,"a":37.4,"b":11.4,"src":"zone_builder_thumbs/61_34524.jpg"},{"iid":35556,"L":32.8,"a":35.3,"b":14.7,"src":"zone_builder_thumbs/61_35556.jpg"},{"iid":63400,"L":33.0,"a":36.8,"b":16.0,"src":"zone_builder_thumbs/61_63400.jpg"},{"iid":26901,"L":37.8,"a":37.4,"b":11.4,"src":"zone_builder_thumbs/61_26901.jpg"},{"iid":61242,"L":38.5,"a":26.0,"b":8.7,"src":"zone_builder_thumbs/61_61242.jpg"}],"56":[{"iid":6756,"L":31.3,"a":47.0,"b":22.0,"src":"zone_builder_thumbs/56_6756.jpg"},{"iid":40634,"L":34.8,"a":40.3,"b":19.8,"src":"zone_builder_thumbs/56_40634.jpg"},{"iid":26804,"L":32.5,"a":53.4,"b":24.8,"src":"zone_builder_thumbs/56_26804.jpg"},{"iid":63230,"L":36.8,"a":46.6,"b":20.1,"src":"zone_builder_thumbs/56_63230.jpg"},{"iid":4192,"L":32.6,"a":48.0,"b":26.0,"src":"zone_builder_thumbs/56_4192.jpg"},{"iid":63123,"L":32.0,"a":44.3,"b":18.8,"src":"zone_builder_thumbs/56_63123.jpg"},{"iid":44586,"L":34.5,"a":50.5,"b":26.1,"src":"zone_builder_thumbs/56_44586.jpg"},{"iid":35052,"L":32.5,"a":52.5,"b":24.7,"src":"zone_builder_thumbs/56_35052.jpg"},{"iid":4111,"L":34.5,"a":50.3,"b":26.1,"src":"zone_builder_thumbs/56_4111.jpg"},{"iid":63255,"L":34.7,"a":40.3,"b":19.8,"src":"zone_builder_thumbs/56_63255.jpg"}],"58":[{"iid":4610,"L":30.8,"a":45.5,"b":28.1,"src":"zone_builder_thumbs/58_4610.jpg"},{"iid":6294,"L":28.8,"a":46.7,"b":22.2,"src":"zone_builder_thumbs/58_6294.jpg"},{"iid":51414,"L":30.3,"a":40.4,"b":24.4,"src":"zone_builder_thumbs/58_51414.jpg"},{"iid":4148,"L":30.1,"a":49.8,"b":27.0,"src":"zone_builder_thumbs/58_4148.jpg"},{"iid":11131,"L":27.3,"a":48.1,"b":27.6,"src":"zone_builder_thumbs/58_11131.jpg"}],"57":[{"iid":3985,"L":26.8,"a":40.1,"b":33.3,"src":"zone_builder_thumbs/57_3985.jpg"}],"55":[{"iid":4481,"L":38.3,"a":36.3,"b":35.6,"src":"zone_builder_thumbs/55_4481.jpg"},{"iid":4642,"L":31.3,"a":36.3,"b":36.8,"src":"zone_builder_thumbs/55_4642.jpg"},{"iid":4516,"L":34.6,"a":32.8,"b":32.7,"src":"zone_builder_thumbs/55_4516.jpg"}],"54":[{"iid":3999,"L":34.4,"a":36.0,"b":25.7,"src":"zone_builder_thumbs/54_3999.jpg"},{"iid":11254,"L":39.4,"a":40.0,"b":28.3,"src":"zone_builder_thumbs/54_11254.jpg"}],"52":[{"iid":4000,"L":44.4,"a":36.5,"b":28.6,"src":"zone_builder_thumbs/52_4000.jpg"}],"47":[{"iid":15230,"L":39.1,"a":53.5,"b":34.5,"src":"zone_builder_thumbs/47_15230.jpg"},{"iid":6675,"L":38.9,"a":55.2,"b":26.3,"src":"zone_builder_thumbs/47_6675.jpg"},{"iid":61672,"L":37.6,"a":60.9,"b":33.0,"src":"zone_builder_thumbs/47_61672.jpg"},{"iid":19178,"L":39.0,"a":49.1,"b":28.6,"src":"zone_builder_thumbs/47_19178.jpg"},{"iid":11178,"L":41.8,"a":55.8,"b":31.8,"src":"zone_builder_thumbs/47_11178.jpg"},{"iid":40394,"L":41.4,"a":52.1,"b":29.6,"src":"zone_builder_thumbs/47_40394.jpg"},{"iid":34766,"L":41.7,"a":52.8,"b":33.6,"src":"zone_builder_thumbs/47_34766.jpg"},{"iid":62066,"L":39.7,"a":52.1,"b":29.2,"src":"zone_builder_thumbs/47_62066.jpg"},{"iid":34637,"L":38.3,"a":50.3,"b":27.8,"src":"zone_builder_thumbs/47_34637.jpg"},{"iid":15155,"L":41.3,"a":52.5,"b":33.4,"src":"zone_builder_thumbs/47_15155.jpg"}],"48":[{"iid":72699,"L":42.0,"a":64.3,"b":40.1,"src":"zone_builder_thumbs/48_72699.jpg"},{"iid":45950,"L":46.0,"a":55.8,"b":33.0,"src":"zone_builder_thumbs/48_45950.jpg"},{"iid":73494,"L":45.1,"a":69.5,"b":42.6,"src":"zone_builder_thumbs/48_73494.jpg"},{"iid":38969,"L":39.7,"a":61.8,"b":34.5,"src":"zone_builder_thumbs/48_38969.jpg"},{"iid":73943,"L":42.3,"a":64.7,"b":45.7,"src":"zone_builder_thumbs/48_73943.jpg"},{"iid":19166,"L":44.5,"a":60.0,"b":35.5,"src":"zone_builder_thumbs/48_19166.jpg"},{"iid":50775,"L":44.9,"a":64.5,"b":42.9,"src":"zone_builder_thumbs/48_50775.jpg"},{"iid":26401,"L":46.3,"a":55.8,"b":36.4,"src":"zone_builder_thumbs/48_26401.jpg"},{"iid":61620,"L":45.0,"a":67.0,"b":45.0,"src":"zone_builder_thumbs/48_61620.jpg"},{"iid":39429,"L":41.6,"a":63.5,"b":37.1,"src":"zone_builder_thumbs/48_39429.jpg"}],"50":[{"iid":56244,"L":46.0,"a":68.2,"b":33.3,"src":"zone_builder_thumbs/50_56244.jpg"},{"iid":4491,"L":49.2,"a":62.7,"b":28.9,"src":"zone_builder_thumbs/50_4491.jpg"},{"iid":45935,"L":46.3,"a":70.9,"b":35.4,"src":"zone_builder_thumbs/50_45935.jpg"}],"51":[{"iid":4542,"L":45.2,"a":51.1,"b":26.1,"src":"zone_builder_thumbs/51_4542.jpg"},{"iid":4076,"L":47.0,"a":58.5,"b":24.6,"src":"zone_builder_thumbs/51_4076.jpg"},{"iid":4448,"L":41.6,"a":48.7,"b":19.8,"src":"zone_builder_thumbs/51_4448.jpg"},{"iid":6361,"L":46.8,"a":52.4,"b":19.2,"src":"zone_builder_thumbs/51_6361.jpg"},{"iid":6242,"L":42.7,"a":53.6,"b":25.4,"src":"zone_builder_thumbs/51_6242.jpg"},{"iid":4537,"L":46.5,"a":51.7,"b":26.2,"src":"zone_builder_thumbs/51_4537.jpg"}],"49":[{"iid":50813,"L":49.9,"a":38.2,"b":22.2,"src":"zone_builder_thumbs/49_50813.jpg"},{"iid":15617,"L":49.0,"a":55.4,"b":33.6,"src":"zone_builder_thumbs/49_15617.jpg"},{"iid":34585,"L":52.1,"a":51.5,"b":29.9,"src":"zone_builder_thumbs/49_34585.jpg"},{"iid":61880,"L":48.0,"a":34.1,"b":19.9,"src":"zone_builder_thumbs/49_61880.jpg"},{"iid":62453,"L":51.5,"a":38.3,"b":21.8,"src":"zone_builder_thumbs/49_62453.jpg"},{"iid":4493,"L":52.2,"a":51.7,"b":30.0,"src":"zone_builder_thumbs/49_4493.jpg"},{"iid":56942,"L":47.8,"a":34.2,"b":20.0,"src":"zone_builder_thumbs/49_56942.jpg"},{"iid":50820,"L":51.5,"a":38.3,"b":21.8,"src":"zone_builder_thumbs/49_50820.jpg"}],"116":[{"iid":63466,"L":55.6,"a":56.9,"b":29.9,"src":"zone_builder_thumbs/116_63466.jpg"},{"iid":11309,"L":54.4,"a":54.6,"b":19.0,"src":"zone_builder_thumbs/116_11309.jpg"},{"iid":4348,"L":54.0,"a":66.1,"b":29.9,"src":"zone_builder_thumbs/116_4348.jpg"},{"iid":4107,"L":51.1,"a":56.8,"b":20.7,"src":"zone_builder_thumbs/116_4107.jpg"},{"iid":34234,"L":55.8,"a":51.5,"b":20.8,"src":"zone_builder_thumbs/116_34234.jpg"},{"iid":4262,"L":54.9,"a":64.5,"b":33.3,"src":"zone_builder_thumbs/116_4262.jpg"},{"iid":6505,"L":51.7,"a":64.7,"b":27.2,"src":"zone_builder_thumbs/116_6505.jpg"},{"iid":8466,"L":52.6,"a":64.7,"b":30.4,"src":"zone_builder_thumbs/116_8466.jpg"},{"iid":46173,"L":55.3,"a":56.8,"b":30.0,"src":"zone_builder_thumbs/116_46173.jpg"},{"iid":27341,"L":55.7,"a":51.5,"b":20.8,"src":"zone_builder_thumbs/116_27341.jpg"}],"45":[{"iid":39382,"L":56.1,"a":65.8,"b":47.7,"src":"zone_builder_thumbs/45_39382.jpg"},{"iid":61500,"L":54.2,"a":72.5,"b":47.0,"src":"zone_builder_thumbs/45_61500.jpg"},{"iid":45558,"L":53.4,"a":63.3,"b":42.3,"src":"zone_builder_thumbs/45_45558.jpg"},{"iid":45460,"L":53.9,"a":63.3,"b":42.3,"src":"zone_builder_thumbs/45_45460.jpg"},{"iid":49684,"L":54.2,"a":72.6,"b":47.1,"src":"zone_builder_thumbs/45_49684.jpg"},{"iid":61437,"L":56.1,"a":65.8,"b":47.7,"src":"zone_builder_thumbs/45_61437.jpg"}],"46":[{"iid":73497,"L":48.6,"a":68.7,"b":45.0,"src":"zone_builder_thumbs/46_73497.jpg"},{"iid":39415,"L":47.8,"a":72.8,"b":54.5,"src":"zone_builder_thumbs/46_39415.jpg"},{"iid":73687,"L":47.5,"a":62.0,"b":38.1,"src":"zone_builder_thumbs/46_73687.jpg"},{"iid":62468,"L":48.4,"a":63.4,"b":52.0,"src":"zone_builder_thumbs/46_62468.jpg"},{"iid":84851,"L":51.6,"a":67.8,"b":39.4,"src":"zone_builder_thumbs/46_84851.jpg"},{"iid":50931,"L":49.6,"a":61.3,"b":43.3,"src":"zone_builder_thumbs/46_50931.jpg"},{"iid":4459,"L":47.9,"a":73.2,"b":48.8,"src":"zone_builder_thumbs/46_4459.jpg"},{"iid":62235,"L":50.4,"a":68.7,"b":55.0,"src":"zone_builder_thumbs/46_62235.jpg"},{"iid":62253,"L":48.2,"a":65.6,"b":39.9,"src":"zone_builder_thumbs/46_62253.jpg"},{"iid":72697,"L":48.5,"a":69.2,"b":41.5,"src":"zone_builder_thumbs/46_72697.jpg"}],"159":[{"iid":3993,"L":52.1,"a":41.9,"b":47.7,"src":"zone_builder_thumbs/159_3993.jpg"},{"iid":3987,"L":56.3,"a":41.4,"b":58.0,"src":"zone_builder_thumbs/159_3987.jpg"}],"161":[{"iid":34117,"L":53.2,"a":25.1,"b":34.1,"src":"zone_builder_thumbs/161_34117.jpg"},{"iid":4389,"L":51.0,"a":21.5,"b":29.1,"src":"zone_builder_thumbs/161_4389.jpg"},{"iid":10898,"L":49.4,"a":29.0,"b":37.3,"src":"zone_builder_thumbs/161_10898.jpg"},{"iid":10798,"L":53.2,"a":25.5,"b":34.5,"src":"zone_builder_thumbs/161_10798.jpg"}],"163":[{"iid":4241,"L":45.5,"a":21.5,"b":37.6,"src":"zone_builder_thumbs/163_4241.jpg"},{"iid":73500,"L":46.9,"a":18.7,"b":42.5,"src":"zone_builder_thumbs/163_73500.jpg"}],"53":[{"iid":4337,"L":44.4,"a":20.3,"b":25.7,"src":"zone_builder_thumbs/53_4337.jpg"},{"iid":4292,"L":42.6,"a":22.7,"b":29.8,"src":"zone_builder_thumbs/53_4292.jpg"},{"iid":6673,"L":44.3,"a":23.3,"b":23.5,"src":"zone_builder_thumbs/53_6673.jpg"}],"162":[{"iid":77858,"L":52.8,"a":23.9,"b":51.5,"src":"zone_builder_thumbs/162_77858.jpg"}],"160":[{"iid":62910,"L":51.8,"a":11.6,"b":39.9,"src":"zone_builder_thumbs/160_62910.jpg"},{"iid":62864,"L":48.7,"a":7.5,"b":33.6,"src":"zone_builder_thumbs/160_62864.jpg"},{"iid":57575,"L":49.3,"a":7.5,"b":33.6,"src":"zone_builder_thumbs/160_57575.jpg"},{"iid":57756,"L":51.7,"a":11.6,"b":40.0,"src":"zone_builder_thumbs/160_57756.jpg"}],"36":[{"iid":44879,"L":48.8,"a":2.1,"b":3.9,"src":"zone_builder_thumbs/36_44879.jpg"},{"iid":62397,"L":45.8,"a":0.8,"b":3.2,"src":"zone_builder_thumbs/36_62397.jpg"},{"iid":50671,"L":46.1,"a":0.9,"b":3.1,"src":"zone_builder_thumbs/36_50671.jpg"}],"37":[{"iid":39139,"L":42.3,"a":2.8,"b":8.1,"src":"zone_builder_thumbs/37_39139.jpg"},{"iid":78683,"L":41.2,"a":6.3,"b":8.7,"src":"zone_builder_thumbs/37_78683.jpg"}],"35":[{"iid":34853,"L":49.3,"a":9.2,"b":13.4,"src":"zone_builder_thumbs/35_34853.jpg"},{"iid":15339,"L":45.8,"a":9.0,"b":13.1,"src":"zone_builder_thumbs/35_15339.jpg"},{"iid":15362,"L":49.3,"a":9.3,"b":13.7,"src":"zone_builder_thumbs/35_15362.jpg"},{"iid":39775,"L":45.9,"a":9.0,"b":13.0,"src":"zone_builder_thumbs/35_39775.jpg"}],"174":[{"iid":15118,"L":50.4,"a":7.4,"b":17.0,"src":"zone_builder_thumbs/174_15118.jpg"},{"iid":4371,"L":53.9,"a":10.4,"b":18.4,"src":"zone_builder_thumbs/174_4371.jpg"},{"iid":3998,"L":51.3,"a":3.0,"b":17.2,"src":"zone_builder_thumbs/174_3998.jpg"},{"iid":15153,"L":50.7,"a":7.2,"b":14.9,"src":"zone_builder_thumbs/174_15153.jpg"}],"165":[{"iid":27895,"L":45.1,"a":3.9,"b":21.6,"src":"zone_builder_thumbs/165_27895.jpg"},{"iid":34621,"L":42.4,"a":0.8,"b":21.1,"src":"zone_builder_thumbs/165_34621.jpg"}],"33":[{"iid":72504,"L":43.1,"a":13.5,"b":9.8,"src":"zone_builder_thumbs/33_72504.jpg"},{"iid":14695,"L":39.6,"a":17.9,"b":13.0,"src":"zone_builder_thumbs/33_14695.jpg"},{"iid":45578,"L":46.6,"a":12.0,"b":9.9,"src":"zone_builder_thumbs/33_45578.jpg"},{"iid":6428,"L":41.3,"a":17.8,"b":12.1,"src":"zone_builder_thumbs/33_6428.jpg"},{"iid":62725,"L":46.6,"a":12.0,"b":9.9,"src":"zone_builder_thumbs/33_62725.jpg"}],"32":[{"iid":62305,"L":39.7,"a":12.2,"b":2.0,"src":"zone_builder_thumbs/32_62305.jpg"},{"iid":50266,"L":43.8,"a":9.4,"b":3.4,"src":"zone_builder_thumbs/32_50266.jpg"},{"iid":50785,"L":42.3,"a":15.0,"b":2.1,"src":"zone_builder_thumbs/32_50785.jpg"},{"iid":50698,"L":36.3,"a":13.2,"b":0.9,"src":"zone_builder_thumbs/32_50698.jpg"},{"iid":56388,"L":41.7,"a":10.3,"b":6.0,"src":"zone_builder_thumbs/32_56388.jpg"},{"iid":50769,"L":42.5,"a":10.5,"b":1.7,"src":"zone_builder_thumbs/32_50769.jpg"},{"iid":61395,"L":37.4,"a":11.9,"b":2.6,"src":"zone_builder_thumbs/32_61395.jpg"},{"iid":62148,"L":40.2,"a":14.3,"b":2.0,"src":"zone_builder_thumbs/32_62148.jpg"},{"iid":50045,"L":38.1,"a":13.3,"b":1.5,"src":"zone_builder_thumbs/32_50045.jpg"},{"iid":56821,"L":36.8,"a":14.1,"b":2.1,"src":"zone_builder_thumbs/32_56821.jpg"}],"34":[{"iid":45274,"L":47.6,"a":9.3,"b":1.4,"src":"zone_builder_thumbs/34_45274.jpg"},{"iid":27108,"L":47.4,"a":3.8,"b":-3.1,"src":"zone_builder_thumbs/34_27108.jpg"},{"iid":62147,"L":47.6,"a":9.4,"b":1.4,"src":"zone_builder_thumbs/34_62147.jpg"}],"38":[{"iid":61964,"L":31.4,"a":9.8,"b":10.9,"src":"zone_builder_thumbs/38_61964.jpg"},{"iid":83639,"L":37.1,"a":9.2,"b":11.5,"src":"zone_builder_thumbs/38_83639.jpg"},{"iid":8252,"L":34.4,"a":13.6,"b":13.4,"src":"zone_builder_thumbs/38_8252.jpg"},{"iid":6248,"L":27.8,"a":12.0,"b":12.0,"src":"zone_builder_thumbs/38_6248.jpg"},{"iid":56810,"L":32.3,"a":7.3,"b":11.7,"src":"zone_builder_thumbs/38_56810.jpg"},{"iid":10914,"L":31.3,"a":12.3,"b":12.2,"src":"zone_builder_thumbs/38_10914.jpg"},{"iid":78209,"L":30.0,"a":9.2,"b":8.7,"src":"zone_builder_thumbs/38_78209.jpg"},{"iid":84436,"L":28.1,"a":10.6,"b":9.8,"src":"zone_builder_thumbs/38_84436.jpg"},{"iid":39542,"L":35.9,"a":8.5,"b":12.1,"src":"zone_builder_thumbs/38_39542.jpg"},{"iid":35181,"L":31.0,"a":12.0,"b":12.2,"src":"zone_builder_thumbs/38_35181.jpg"}],"39":[{"iid":73327,"L":35.4,"a":15.0,"b":31.4,"src":"zone_builder_thumbs/39_73327.jpg"},{"iid":11552,"L":31.7,"a":10.9,"b":20.2,"src":"zone_builder_thumbs/39_11552.jpg"}],"40":[{"iid":27315,"L":34.1,"a":1.0,"b":21.4,"src":"zone_builder_thumbs/40_27315.jpg"}],"41":[{"iid":27305,"L":24.7,"a":1.0,"b":18.0,"src":"zone_builder_thumbs/41_27305.jpg"},{"iid":44599,"L":20.0,"a":-1.3,"b":10.5,"src":"zone_builder_thumbs/41_44599.jpg"},{"iid":61844,"L":20.4,"a":-1.2,"b":10.7,"src":"zone_builder_thumbs/41_61844.jpg"},{"iid":62534,"L":24.7,"a":1.0,"b":18.1,"src":"zone_builder_thumbs/41_62534.jpg"}],"43":[{"iid":11023,"L":24.1,"a":15.0,"b":15.8,"src":"zone_builder_thumbs/43_11023.jpg"},{"iid":79386,"L":21.1,"a":15.0,"b":19.1,"src":"zone_builder_thumbs/43_79386.jpg"},{"iid":4036,"L":28.2,"a":16.6,"b":15.8,"src":"zone_builder_thumbs/43_4036.jpg"},{"iid":63665,"L":23.3,"a":17.6,"b":15.2,"src":"zone_builder_thumbs/43_63665.jpg"}],"44":[{"iid":84706,"L":23.8,"a":10.1,"b":9.7,"src":"zone_builder_thumbs/44_84706.jpg"},{"iid":6130,"L":20.1,"a":12.6,"b":13.0,"src":"zone_builder_thumbs/44_6130.jpg"},{"iid":40761,"L":26.5,"a":7.6,"b":12.4,"src":"zone_builder_thumbs/44_40761.jpg"},{"iid":50559,"L":24.1,"a":13.3,"b":11.4,"src":"zone_builder_thumbs/44_50559.jpg"},{"iid":10780,"L":20.7,"a":9.3,"b":13.9,"src":"zone_builder_thumbs/44_10780.jpg"},{"iid":72114,"L":21.5,"a":9.3,"b":7.2,"src":"zone_builder_thumbs/44_72114.jpg"},{"iid":11298,"L":22.6,"a":12.2,"b":10.2,"src":"zone_builder_thumbs/44_11298.jpg"},{"iid":85929,"L":24.4,"a":8.9,"b":9.1,"src":"zone_builder_thumbs/44_85929.jpg"},{"iid":6541,"L":22.3,"a":9.1,"b":7.7,"src":"zone_builder_thumbs/44_6541.jpg"},{"iid":63481,"L":25.9,"a":7.5,"b":12.4,"src":"zone_builder_thumbs/44_63481.jpg"}],"42":[{"iid":73070,"L":20.2,"a":10.5,"b":6.5,"src":"zone_builder_thumbs/42_73070.jpg"},{"iid":62358,"L":23.3,"a":7.1,"b":3.6,"src":"zone_builder_thumbs/42_62358.jpg"},{"iid":73515,"L":16.5,"a":11.0,"b":8.1,"src":"zone_builder_thumbs/42_73515.jpg"},{"iid":11250,"L":19.3,"a":12.4,"b":9.9,"src":"zone_builder_thumbs/42_11250.jpg"},{"iid":79126,"L":23.8,"a":10.1,"b":4.8,"src":"zone_builder_thumbs/42_79126.jpg"},{"iid":73004,"L":16.5,"a":9.6,"b":5.5,"src":"zone_builder_thumbs/42_73004.jpg"},{"iid":73381,"L":17.1,"a":12.2,"b":6.1,"src":"zone_builder_thumbs/42_73381.jpg"},{"iid":73009,"L":21.4,"a":11.6,"b":7.5,"src":"zone_builder_thumbs/42_73009.jpg"},{"iid":73513,"L":18.4,"a":11.5,"b":8.2,"src":"zone_builder_thumbs/42_73513.jpg"},{"iid":73147,"L":18.5,"a":11.4,"b":5.8,"src":"zone_builder_thumbs/42_73147.jpg"}],"21":[{"iid":57013,"L":27.0,"a":12.1,"b":3.2,"src":"zone_builder_thumbs/21_57013.jpg"},{"iid":49806,"L":30.3,"a":10.8,"b":0.8,"src":"zone_builder_thumbs/21_49806.jpg"},{"iid":61357,"L":30.1,"a":10.6,"b":0.7,"src":"zone_builder_thumbs/21_61357.jpg"},{"iid":61968,"L":27.0,"a":12.1,"b":3.2,"src":"zone_builder_thumbs/21_61968.jpg"}],"26":[{"iid":72535,"L":13.0,"a":12.3,"b":6.7,"src":"zone_builder_thumbs/26_72535.jpg"},{"iid":73012,"L":11.0,"a":13.8,"b":7.0,"src":"zone_builder_thumbs/26_73012.jpg"}],"27":[{"iid":61471,"L":11.0,"a":22.2,"b":4.8,"src":"zone_builder_thumbs/27_61471.jpg"},{"iid":45397,"L":11.9,"a":20.6,"b":-3.0,"src":"zone_builder_thumbs/27_45397.jpg"},{"iid":3922,"L":13.7,"a":17.8,"b":3.5,"src":"zone_builder_thumbs/27_3922.jpg"},{"iid":39444,"L":11.3,"a":22.7,"b":4.5,"src":"zone_builder_thumbs/27_39444.jpg"}],"25":[{"iid":39859,"L":17.9,"a":25.5,"b":6.9,"src":"zone_builder_thumbs/25_39859.jpg"},{"iid":46330,"L":11.2,"a":26.1,"b":9.2,"src":"zone_builder_thumbs/25_46330.jpg"},{"iid":3925,"L":17.3,"a":21.2,"b":5.0,"src":"zone_builder_thumbs/25_3925.jpg"},{"iid":39763,"L":20.1,"a":21.7,"b":7.8,"src":"zone_builder_thumbs/25_39763.jpg"},{"iid":34372,"L":14.7,"a":24.4,"b":7.6,"src":"zone_builder_thumbs/25_34372.jpg"},{"iid":61335,"L":18.2,"a":28.5,"b":6.4,"src":"zone_builder_thumbs/25_61335.jpg"},{"iid":61417,"L":19.8,"a":23.8,"b":5.8,"src":"zone_builder_thumbs/25_61417.jpg"},{"iid":50763,"L":20.0,"a":27.0,"b":7.5,"src":"zone_builder_thumbs/25_50763.jpg"},{"iid":61411,"L":16.1,"a":27.3,"b":6.6,"src":"zone_builder_thumbs/25_61411.jpg"},{"iid":62312,"L":16.8,"a":24.4,"b":5.7,"src":"zone_builder_thumbs/25_62312.jpg"}],"24":[{"iid":56844,"L":23.5,"a":28.8,"b":10.1,"src":"zone_builder_thumbs/24_56844.jpg"},{"iid":11251,"L":25.8,"a":39.9,"b":12.8,"src":"zone_builder_thumbs/24_11251.jpg"},{"iid":39923,"L":25.4,"a":34.9,"b":7.2,"src":"zone_builder_thumbs/24_39923.jpg"},{"iid":61794,"L":17.8,"a":31.9,"b":9.4,"src":"zone_builder_thumbs/24_61794.jpg"},{"iid":46390,"L":28.2,"a":26.6,"b":6.5,"src":"zone_builder_thumbs/24_46390.jpg"},{"iid":62142,"L":21.2,"a":34.7,"b":12.2,"src":"zone_builder_thumbs/24_62142.jpg"},{"iid":62070,"L":19.3,"a":26.8,"b":10.6,"src":"zone_builder_thumbs/24_62070.jpg"},{"iid":51374,"L":23.1,"a":27.9,"b":14.1,"src":"zone_builder_thumbs/24_51374.jpg"},{"iid":38925,"L":26.0,"a":31.0,"b":7.1,"src":"zone_builder_thumbs/24_38925.jpg"},{"iid":4399,"L":25.6,"a":31.3,"b":11.5,"src":"zone_builder_thumbs/24_4399.jpg"}],"20":[{"iid":63087,"L":25.3,"a":19.9,"b":4.8,"src":"zone_builder_thumbs/20_63087.jpg"},{"iid":40599,"L":25.4,"a":20.1,"b":4.7,"src":"zone_builder_thumbs/20_40599.jpg"}],"22":[{"iid":23460,"L":19.6,"a":21.3,"b":-5.6,"src":"zone_builder_thumbs/22_23460.jpg"},{"iid":6537,"L":26.7,"a":17.0,"b":-4.0,"src":"zone_builder_thumbs/22_6537.jpg"},{"iid":23908,"L":23.4,"a":21.4,"b":-8.2,"src":"zone_builder_thumbs/22_23908.jpg"},{"iid":4233,"L":22.8,"a":17.8,"b":-2.7,"src":"zone_builder_thumbs/22_4233.jpg"},{"iid":34742,"L":19.4,"a":21.4,"b":-5.6,"src":"zone_builder_thumbs/22_34742.jpg"},{"iid":34895,"L":23.3,"a":21.5,"b":-8.2,"src":"zone_builder_thumbs/22_34895.jpg"}],"23":[{"iid":4451,"L":19.8,"a":13.6,"b":-1.9,"src":"zone_builder_thumbs/23_4451.jpg"},{"iid":4410,"L":12.2,"a":12.7,"b":-2.3,"src":"zone_builder_thumbs/23_4410.jpg"},{"iid":4499,"L":17.2,"a":13.9,"b":-9.0,"src":"zone_builder_thumbs/23_4499.jpg"},{"iid":4122,"L":19.6,"a":17.1,"b":0.1,"src":"zone_builder_thumbs/23_4122.jpg"},{"iid":4509,"L":15.7,"a":14.2,"b":-2.8,"src":"zone_builder_thumbs/23_4509.jpg"},{"iid":4188,"L":17.7,"a":14.5,"b":1.4,"src":"zone_builder_thumbs/23_4188.jpg"},{"iid":4462,"L":19.5,"a":10.1,"b":-2.0,"src":"zone_builder_thumbs/23_4462.jpg"},{"iid":4354,"L":21.0,"a":16.5,"b":-2.5,"src":"zone_builder_thumbs/23_4354.jpg"},{"iid":31381,"L":16.9,"a":11.3,"b":-1.9,"src":"zone_builder_thumbs/23_31381.jpg"},{"iid":4144,"L":13.6,"a":10.5,"b":-2.3,"src":"zone_builder_thumbs/23_4144.jpg"}],"7":[{"iid":85086,"L":23.2,"a":9.1,"b":-14.1,"src":"zone_builder_thumbs/7_85086.jpg"},{"iid":15597,"L":30.0,"a":7.8,"b":-11.6,"src":"zone_builder_thumbs/7_15597.jpg"},{"iid":73321,"L":20.1,"a":10.2,"b":-10.1,"src":"zone_builder_thumbs/7_73321.jpg"},{"iid":72236,"L":23.6,"a":10.3,"b":-17.3,"src":"zone_builder_thumbs/7_72236.jpg"},{"iid":72959,"L":20.7,"a":7.9,"b":-12.4,"src":"zone_builder_thumbs/7_72959.jpg"},{"iid":72121,"L":22.6,"a":9.4,"b":-10.9,"src":"zone_builder_thumbs/7_72121.jpg"},{"iid":72998,"L":22.0,"a":10.9,"b":-11.8,"src":"zone_builder_thumbs/7_72998.jpg"},{"iid":62338,"L":20.3,"a":9.5,"b":-12.9,"src":"zone_builder_thumbs/7_62338.jpg"},{"iid":72696,"L":22.1,"a":8.9,"b":-15.5,"src":"zone_builder_thumbs/7_72696.jpg"},{"iid":84002,"L":24.4,"a":10.0,"b":-14.4,"src":"zone_builder_thumbs/7_84002.jpg"}],"9":[{"iid":73511,"L":16.1,"a":7.8,"b":-13.2,"src":"zone_builder_thumbs/9_73511.jpg"},{"iid":4447,"L":13.3,"a":12.2,"b":-20.0,"src":"zone_builder_thumbs/9_4447.jpg"},{"iid":73514,"L":12.1,"a":6.9,"b":-12.2,"src":"zone_builder_thumbs/9_73514.jpg"},{"iid":15496,"L":18.6,"a":6.7,"b":-11.4,"src":"zone_builder_thumbs/9_15496.jpg"},{"iid":78896,"L":13.3,"a":8.1,"b":-14.2,"src":"zone_builder_thumbs/9_78896.jpg"},{"iid":73322,"L":17.4,"a":8.7,"b":-10.7,"src":"zone_builder_thumbs/9_73322.jpg"},{"iid":72551,"L":17.1,"a":8.9,"b":-12.5,"src":"zone_builder_thumbs/9_72551.jpg"}],"8":[{"iid":62175,"L":18.3,"a":6.0,"b":-16.5,"src":"zone_builder_thumbs/8_62175.jpg"},{"iid":44995,"L":14.4,"a":6.4,"b":-19.3,"src":"zone_builder_thumbs/8_44995.jpg"},{"iid":8660,"L":20.6,"a":3.6,"b":-13.6,"src":"zone_builder_thumbs/8_8660.jpg"},{"iid":61875,"L":16.3,"a":4.6,"b":-20.0,"src":"zone_builder_thumbs/8_61875.jpg"},{"iid":4333,"L":18.5,"a":3.4,"b":-13.9,"src":"zone_builder_thumbs/8_4333.jpg"},{"iid":44973,"L":16.1,"a":4.6,"b":-20.0,"src":"zone_builder_thumbs/8_44973.jpg"},{"iid":61885,"L":14.5,"a":6.4,"b":-19.2,"src":"zone_builder_thumbs/8_61885.jpg"},{"iid":15640,"L":18.3,"a":6.0,"b":-16.5,"src":"zone_builder_thumbs/8_15640.jpg"}],"4":[{"iid":11995,"L":18.8,"a":1.6,"b":-9.7,"src":"zone_builder_thumbs/4_11995.jpg"},{"iid":8372,"L":23.0,"a":-2.0,"b":-13.1,"src":"zone_builder_thumbs/4_8372.jpg"},{"iid":61622,"L":17.0,"a":2.0,"b":-15.8,"src":"zone_builder_thumbs/4_61622.jpg"},{"iid":15103,"L":23.7,"a":-1.0,"b":-8.7,"src":"zone_builder_thumbs/4_15103.jpg"},{"iid":11321,"L":15.6,"a":1.4,"b":-10.5,"src":"zone_builder_thumbs/4_11321.jpg"},{"iid":11244,"L":20.5,"a":-1.3,"b":-12.1,"src":"zone_builder_thumbs/4_11244.jpg"},{"iid":8397,"L":23.1,"a":-1.9,"b":-11.2,"src":"zone_builder_thumbs/4_8397.jpg"},{"iid":4474,"L":16.6,"a":2.3,"b":-11.6,"src":"zone_builder_thumbs/4_4474.jpg"},{"iid":56282,"L":17.6,"a":2.0,"b":-15.6,"src":"zone_builder_thumbs/4_56282.jpg"}],"12":[{"iid":63118,"L":11.3,"a":2.5,"b":-9.3,"src":"zone_builder_thumbs/12_63118.jpg"},{"iid":11118,"L":7.3,"a":1.5,"b":-9.3,"src":"zone_builder_thumbs/12_11118.jpg"},{"iid":50387,"L":14.7,"a":3.6,"b":-10.6,"src":"zone_builder_thumbs/12_50387.jpg"},{"iid":45534,"L":12.9,"a":2.0,"b":-11.8,"src":"zone_builder_thumbs/12_45534.jpg"},{"iid":63222,"L":13.9,"a":4.3,"b":-10.9,"src":"zone_builder_thumbs/12_63222.jpg"},{"iid":4375,"L":13.0,"a":2.1,"b":-11.9,"src":"zone_builder_thumbs/12_4375.jpg"}],"13":[{"iid":19162,"L":12.3,"a":2.9,"b":-5.2,"src":"zone_builder_thumbs/13_19162.jpg"},{"iid":4031,"L":8.7,"a":1.8,"b":-2.2,"src":"zone_builder_thumbs/13_4031.jpg"},{"iid":56199,"L":17.0,"a":3.0,"b":-5.0,"src":"zone_builder_thumbs/13_56199.jpg"},{"iid":23471,"L":15.1,"a":4.9,"b":-7.1,"src":"zone_builder_thumbs/13_23471.jpg"},{"iid":34167,"L":12.8,"a":5.0,"b":-2.7,"src":"zone_builder_thumbs/13_34167.jpg"},{"iid":50357,"L":9.1,"a":2.4,"b":-5.8,"src":"zone_builder_thumbs/13_50357.jpg"},{"iid":62477,"L":11.8,"a":4.4,"b":-8.0,"src":"zone_builder_thumbs/13_62477.jpg"},{"iid":18595,"L":11.6,"a":1.7,"b":-2.5,"src":"zone_builder_thumbs/13_18595.jpg"},{"iid":39488,"L":14.6,"a":2.7,"b":-3.6,"src":"zone_builder_thumbs/13_39488.jpg"},{"iid":40747,"L":9.9,"a":2.8,"b":-3.9,"src":"zone_builder_thumbs/13_40747.jpg"}],"18":[{"iid":45897,"L":16.5,"a":6.6,"b":2.0,"src":"zone_builder_thumbs/18_45897.jpg"},{"iid":62321,"L":12.7,"a":6.5,"b":4.6,"src":"zone_builder_thumbs/18_62321.jpg"},{"iid":62475,"L":12.3,"a":6.8,"b":1.0,"src":"zone_builder_thumbs/18_62475.jpg"},{"iid":4287,"L":13.6,"a":5.0,"b":0.9,"src":"zone_builder_thumbs/18_4287.jpg"},{"iid":74138,"L":16.8,"a":7.4,"b":1.2,"src":"zone_builder_thumbs/18_74138.jpg"}],"17":[{"iid":51444,"L":13.3,"a":2.7,"b":5.0,"src":"zone_builder_thumbs/17_51444.jpg"},{"iid":10951,"L":18.0,"a":4.6,"b":10.5,"src":"zone_builder_thumbs/17_10951.jpg"},{"iid":11815,"L":16.2,"a":0.4,"b":5.2,"src":"zone_builder_thumbs/17_11815.jpg"},{"iid":4312,"L":16.3,"a":2.7,"b":3.7,"src":"zone_builder_thumbs/17_4312.jpg"},{"iid":40754,"L":14.9,"a":3.3,"b":3.6,"src":"zone_builder_thumbs/17_40754.jpg"},{"iid":35594,"L":11.8,"a":2.8,"b":5.1,"src":"zone_builder_thumbs/17_35594.jpg"},{"iid":27786,"L":11.9,"a":2.8,"b":5.1,"src":"zone_builder_thumbs/17_27786.jpg"},{"iid":63601,"L":14.9,"a":3.3,"b":3.6,"src":"zone_builder_thumbs/17_63601.jpg"}],"10":[{"iid":15114,"L":13.1,"a":-0.5,"b":1.9,"src":"zone_builder_thumbs/10_15114.jpg"},{"iid":45591,"L":8.0,"a":-2.1,"b":1.0,"src":"zone_builder_thumbs/10_45591.jpg"},{"iid":62668,"L":15.8,"a":-0.7,"b":0.4,"src":"zone_builder_thumbs/10_62668.jpg"},{"iid":62706,"L":10.5,"a":-0.7,"b":1.3,"src":"zone_builder_thumbs/10_62706.jpg"},{"iid":4426,"L":13.6,"a":0.6,"b":2.9,"src":"zone_builder_thumbs/10_4426.jpg"},{"iid":61777,"L":12.1,"a":0.6,"b":1.6,"src":"zone_builder_thumbs/10_61777.jpg"},{"iid":39551,"L":14.4,"a":-1.2,"b":2.4,"src":"zone_builder_thumbs/10_39551.jpg"},{"iid":4223,"L":15.3,"a":0.0,"b":1.6,"src":"zone_builder_thumbs/10_4223.jpg"},{"iid":72747,"L":13.8,"a":0.6,"b":1.5,"src":"zone_builder_thumbs/10_72747.jpg"},{"iid":4381,"L":14.4,"a":0.0,"b":2.2,"src":"zone_builder_thumbs/10_4381.jpg"}],"16":[{"iid":62687,"L":15.5,"a":0.7,"b":-0.8,"src":"zone_builder_thumbs/16_62687.jpg"},{"iid":45858,"L":22.1,"a":0.6,"b":-1.6,"src":"zone_builder_thumbs/16_45858.jpg"},{"iid":15741,"L":12.0,"a":0.0,"b":-3.0,"src":"zone_builder_thumbs/16_15741.jpg"},{"iid":19086,"L":19.9,"a":1.9,"b":-4.4,"src":"zone_builder_thumbs/16_19086.jpg"},{"iid":35681,"L":18.9,"a":1.0,"b":0.1,"src":"zone_builder_thumbs/16_35681.jpg"},{"iid":39864,"L":15.5,"a":-0.6,"b":-3.8,"src":"zone_builder_thumbs/16_39864.jpg"},{"iid":15722,"L":12.7,"a":1.1,"b":0.0,"src":"zone_builder_thumbs/16_15722.jpg"},{"iid":63542,"L":14.2,"a":1.9,"b":-2.9,"src":"zone_builder_thumbs/16_63542.jpg"},{"iid":77810,"L":17.9,"a":1.3,"b":-2.7,"src":"zone_builder_thumbs/16_77810.jpg"},{"iid":63653,"L":19.3,"a":-0.3,"b":-2.1,"src":"zone_builder_thumbs/16_63653.jpg"}],"14":[{"iid":62442,"L":16.0,"a":1.6,"b":1.0,"src":"zone_builder_thumbs/14_62442.jpg"},{"iid":72581,"L":23.7,"a":1.9,"b":0.6,"src":"zone_builder_thumbs/14_72581.jpg"},{"iid":63505,"L":21.7,"a":3.1,"b":4.1,"src":"zone_builder_thumbs/14_63505.jpg"},{"iid":6424,"L":21.6,"a":4.4,"b":0.0,"src":"zone_builder_thumbs/14_6424.jpg"},{"iid":63135,"L":17.9,"a":3.9,"b":0.9,"src":"zone_builder_thumbs/14_63135.jpg"},{"iid":62055,"L":16.9,"a":1.3,"b":-1.7,"src":"zone_builder_thumbs/14_62055.jpg"},{"iid":61925,"L":21.3,"a":1.2,"b":-0.1,"src":"zone_builder_thumbs/14_61925.jpg"},{"iid":40862,"L":14.5,"a":1.0,"b":-1.0,"src":"zone_builder_thumbs/14_40862.jpg"},{"iid":31657,"L":21.0,"a":2.0,"b":2.0,"src":"zone_builder_thumbs/14_31657.jpg"},{"iid":73512,"L":14.0,"a":1.5,"b":2.0,"src":"zone_builder_thumbs/14_73512.jpg"}],"19":[{"iid":19488,"L":11.6,"a":2.0,"b":0.8,"src":"zone_builder_thumbs/19_19488.jpg"},{"iid":39400,"L":5.7,"a":4.2,"b":1.0,"src":"zone_builder_thumbs/19_39400.jpg"},{"iid":15437,"L":14.3,"a":3.8,"b":-1.5,"src":"zone_builder_thumbs/19_15437.jpg"},{"iid":27347,"L":9.2,"a":5.6,"b":0.4,"src":"zone_builder_thumbs/19_27347.jpg"},{"iid":61412,"L":7.9,"a":1.7,"b":0.0,"src":"zone_builder_thumbs/19_61412.jpg"},{"iid":15331,"L":14.1,"a":1.9,"b":2.5,"src":"zone_builder_thumbs/19_15331.jpg"},{"iid":72632,"L":9.0,"a":2.6,"b":2.3,"src":"zone_builder_thumbs/19_72632.jpg"},{"iid":61263,"L":11.8,"a":3.0,"b":-1.4,"src":"zone_builder_thumbs/19_61263.jpg"},{"iid":34477,"L":14.3,"a":1.9,"b":0.0,"src":"zone_builder_thumbs/19_34477.jpg"},{"iid":63209,"L":12.3,"a":4.0,"b":1.7,"src":"zone_builder_thumbs/19_63209.jpg"}],"11":[{"iid":4079,"L":8.9,"a":0.8,"b":0.3,"src":"zone_builder_thumbs/11_4079.jpg"},{"iid":4453,"L":2.7,"a":0.2,"b":0.0,"src":"zone_builder_thumbs/11_4453.jpg"},{"iid":39263,"L":13.3,"a":0.0,"b":0.0,"src":"zone_builder_thumbs/11_39263.jpg"},{"iid":34315,"L":6.6,"a":0.7,"b":-2.3,"src":"zone_builder_thumbs/11_34315.jpg"},{"iid":62653,"L":11.5,"a":1.2,"b":1.9,"src":"zone_builder_thumbs/11_62653.jpg"},{"iid":50442,"L":6.2,"a":1.7,"b":1.0,"src":"zone_builder_thumbs/11_50442.jpg"},{"iid":72645,"L":8.0,"a":1.0,"b":2.9,"src":"zone_builder_thumbs/11_72645.jpg"},{"iid":4026,"L":11.0,"a":0.0,"b":-0.8,"src":"zone_builder_thumbs/11_4026.jpg"},{"iid":4033,"L":8.8,"a":1.5,"b":-1.5,"src":"zone_builder_thumbs/11_4033.jpg"},{"iid":46191,"L":6.8,"a":0.0,"b":0.4,"src":"zone_builder_thumbs/11_46191.jpg"}],"15":[{"iid":35658,"L":20.2,"a":0.2,"b":0.8,"src":"zone_builder_thumbs/15_35658.jpg"},{"iid":51803,"L":17.1,"a":-0.6,"b":2.2,"src":"zone_builder_thumbs/15_51803.jpg"},{"iid":19257,"L":19.1,"a":-1.0,"b":1.9,"src":"zone_builder_thumbs/15_19257.jpg"},{"iid":45822,"L":20.8,"a":1.0,"b":1.7,"src":"zone_builder_thumbs/15_45822.jpg"},{"iid":50743,"L":19.6,"a":0.0,"b":2.5,"src":"zone_builder_thumbs/15_50743.jpg"},{"iid":23366,"L":19.3,"a":0.0,"b":0.0,"src":"zone_builder_thumbs/15_23366.jpg"},{"iid":27185,"L":21.3,"a":0.0,"b":0.6,"src":"zone_builder_thumbs/15_27185.jpg"},{"iid":63671,"L":18.9,"a":-1.1,"b":2.9,"src":"zone_builder_thumbs/15_63671.jpg"},{"iid":45909,"L":20.6,"a":0.0,"b":-0.1,"src":"zone_builder_thumbs/15_45909.jpg"},{"iid":15924,"L":19.6,"a":0.2,"b":1.6,"src":"zone_builder_thumbs/15_15924.jpg"}],"2":[{"iid":45966,"L":28.5,"a":-3.2,"b":4.5,"src":"zone_builder_thumbs/2_45966.jpg"},{"iid":63246,"L":25.5,"a":-2.2,"b":0.7,"src":"zone_builder_thumbs/2_63246.jpg"}],"1":[{"iid":40646,"L":30.5,"a":0.3,"b":-5.4,"src":"zone_builder_thumbs/1_40646.jpg"},{"iid":4401,"L":33.1,"a":-5.0,"b":-7.6,"src":"zone_builder_thumbs/1_4401.jpg"},{"iid":63206,"L":26.5,"a":-0.1,"b":-5.5,"src":"zone_builder_thumbs/1_63206.jpg"},{"iid":62325,"L":28.9,"a":-0.3,"b":-3.1,"src":"zone_builder_thumbs/1_62325.jpg"},{"iid":56964,"L":31.4,"a":0.0,"b":-4.4,"src":"zone_builder_thumbs/1_56964.jpg"},{"iid":11041,"L":26.6,"a":-0.5,"b":-5.0,"src":"zone_builder_thumbs/1_11041.jpg"},{"iid":35090,"L":29.0,"a":-0.3,"b":-3.1,"src":"zone_builder_thumbs/1_35090.jpg"},{"iid":40565,"L":26.5,"a":-0.1,"b":-5.5,"src":"zone_builder_thumbs/1_40565.jpg"},{"iid":31079,"L":29.0,"a":-0.3,"b":-3.1,"src":"zone_builder_thumbs/1_31079.jpg"},{"iid":63252,"L":30.5,"a":0.3,"b":-5.4,"src":"zone_builder_thumbs/1_63252.jpg"}],"3":[{"iid":16224,"L":28.4,"a":0.5,"b":0.7,"src":"zone_builder_thumbs/3_16224.jpg"},{"iid":51044,"L":32.5,"a":0.0,"b":0.6,"src":"zone_builder_thumbs/3_51044.jpg"},{"iid":44885,"L":29.0,"a":0.7,"b":4.1,"src":"zone_builder_thumbs/3_44885.jpg"},{"iid":40630,"L":25.5,"a":1.6,"b":1.6,"src":"zone_builder_thumbs/3_40630.jpg"},{"iid":63455,"L":25.4,"a":0.0,"b":0.0,"src":"zone_builder_thumbs/3_63455.jpg"},{"iid":67805,"L":30.3,"a":0.0,"b":0.2,"src":"zone_builder_thumbs/3_67805.jpg"},{"iid":10762,"L":27.4,"a":0.7,"b":-0.7,"src":"zone_builder_thumbs/3_10762.jpg"},{"iid":11302,"L":26.4,"a":0.7,"b":2.7,"src":"zone_builder_thumbs/3_11302.jpg"},{"iid":15619,"L":25.9,"a":1.6,"b":0.0,"src":"zone_builder_thumbs/3_15619.jpg"},{"iid":61748,"L":29.1,"a":1.3,"b":0.0,"src":"zone_builder_thumbs/3_61748.jpg"}],"6":[{"iid":11028,"L":25.7,"a":4.0,"b":-3.6,"src":"zone_builder_thumbs/6_11028.jpg"},{"iid":22557,"L":19.8,"a":3.1,"b":-7.1,"src":"zone_builder_thumbs/6_22557.jpg"},{"iid":68482,"L":22.6,"a":1.0,"b":-1.3,"src":"zone_builder_thumbs/6_68482.jpg"},{"iid":4003,"L":22.3,"a":5.7,"b":-5.2,"src":"zone_builder_thumbs/6_4003.jpg"},{"iid":10952,"L":27.1,"a":1.7,"b":-0.7,"src":"zone_builder_thumbs/6_10952.jpg"},{"iid":78193,"L":29.3,"a":2.8,"b":-4.8,"src":"zone_builder_thumbs/6_78193.jpg"},{"iid":6696,"L":23.5,"a":2.9,"b":-6.9,"src":"zone_builder_thumbs/6_6696.jpg"},{"iid":51639,"L":27.0,"a":1.1,"b":-3.7,"src":"zone_builder_thumbs/6_51639.jpg"},{"iid":6425,"L":25.5,"a":4.0,"b":-0.6,"src":"zone_builder_thumbs/6_6425.jpg"},{"iid":11615,"L":23.8,"a":1.8,"b":-3.1,"src":"zone_builder_thumbs/6_11615.jpg"}],"5":[{"iid":61824,"L":31.9,"a":2.5,"b":-5.0,"src":"zone_builder_thumbs/5_61824.jpg"},{"iid":27348,"L":28.1,"a":1.7,"b":-7.6,"src":"zone_builder_thumbs/5_27348.jpg"},{"iid":34622,"L":30.3,"a":4.5,"b":-8.5,"src":"zone_builder_thumbs/5_34622.jpg"},{"iid":39957,"L":32.0,"a":2.0,"b":-8.1,"src":"zone_builder_thumbs/5_39957.jpg"},{"iid":34904,"L":33.6,"a":1.2,"b":-3.0,"src":"zone_builder_thumbs/5_34904.jpg"},{"iid":34892,"L":29.8,"a":4.1,"b":-5.4,"src":"zone_builder_thumbs/5_34892.jpg"},{"iid":12078,"L":33.3,"a":3.3,"b":-3.9,"src":"zone_builder_thumbs/5_12078.jpg"},{"iid":4014,"L":30.4,"a":5.0,"b":-6.3,"src":"zone_builder_thumbs/5_4014.jpg"},{"iid":61699,"L":32.6,"a":1.8,"b":-2.8,"src":"zone_builder_thumbs/5_61699.jpg"},{"iid":62204,"L":30.7,"a":4.1,"b":-5.4,"src":"zone_builder_thumbs/5_62204.jpg"}],"31":[{"iid":4007,"L":33.2,"a":6.1,"b":-4.3,"src":"zone_builder_thumbs/31_4007.jpg"},{"iid":50582,"L":33.9,"a":6.9,"b":3.4,"src":"zone_builder_thumbs/31_50582.jpg"},{"iid":11038,"L":31.9,"a":3.4,"b":-0.2,"src":"zone_builder_thumbs/31_11038.jpg"},{"iid":61632,"L":35.6,"a":7.4,"b":0.2,"src":"zone_builder_thumbs/31_61632.jpg"},{"iid":15320,"L":29.5,"a":4.4,"b":-2.1,"src":"zone_builder_thumbs/31_15320.jpg"},{"iid":3935,"L":35.1,"a":5.2,"b":-4.1,"src":"zone_builder_thumbs/31_3935.jpg"},{"iid":3958,"L":31.8,"a":6.1,"b":-4.9,"src":"zone_builder_thumbs/31_3958.jpg"},{"iid":3959,"L":34.1,"a":6.0,"b":-5.0,"src":"zone_builder_thumbs/31_3959.jpg"},{"iid":34584,"L":33.2,"a":5.3,"b":-4.5,"src":"zone_builder_thumbs/31_34584.jpg"},{"iid":34632,"L":29.8,"a":4.3,"b":-2.0,"src":"zone_builder_thumbs/31_34632.jpg"}],"30":[{"iid":45117,"L":33.3,"a":3.4,"b":2.0,"src":"zone_builder_thumbs/30_45117.jpg"},{"iid":44630,"L":37.5,"a":2.0,"b":5.7,"src":"zone_builder_thumbs/30_44630.jpg"},{"iid":40757,"L":36.4,"a":3.9,"b":2.8,"src":"zone_builder_thumbs/30_40757.jpg"},{"iid":51601,"L":31.5,"a":2.7,"b":3.5,"src":"zone_builder_thumbs/30_51601.jpg"},{"iid":3900,"L":32.8,"a":2.0,"b":1.8,"src":"zone_builder_thumbs/30_3900.jpg"},{"iid":51102,"L":36.1,"a":2.0,"b":5.7,"src":"zone_builder_thumbs/30_51102.jpg"},{"iid":51648,"L":33.1,"a":2.7,"b":0.9,"src":"zone_builder_thumbs/30_51648.jpg"},{"iid":67826,"L":37.3,"a":2.1,"b":5.8,"src":"zone_builder_thumbs/30_67826.jpg"},{"iid":63284,"L":33.1,"a":2.6,"b":0.9,"src":"zone_builder_thumbs/30_63284.jpg"},{"iid":63298,"L":36.4,"a":3.9,"b":2.8,"src":"zone_builder_thumbs/30_63298.jpg"}],"29":[{"iid":73576,"L":39.5,"a":-0.2,"b":0.6,"src":"zone_builder_thumbs/29_73576.jpg"},{"iid":62157,"L":42.9,"a":0.3,"b":-1.3,"src":"zone_builder_thumbs/29_62157.jpg"},{"iid":46202,"L":37.3,"a":1.4,"b":0.2,"src":"zone_builder_thumbs/29_46202.jpg"},{"iid":3913,"L":38.6,"a":-0.7,"b":-1.5,"src":"zone_builder_thumbs/29_3913.jpg"},{"iid":10975,"L":38.6,"a":1.0,"b":1.2,"src":"zone_builder_thumbs/29_10975.jpg"},{"iid":8670,"L":41.7,"a":0.6,"b":-1.2,"src":"zone_builder_thumbs/29_8670.jpg"},{"iid":34505,"L":42.8,"a":0.3,"b":-1.3,"src":"zone_builder_thumbs/29_34505.jpg"},{"iid":15326,"L":42.8,"a":0.3,"b":-1.3,"src":"zone_builder_thumbs/29_15326.jpg"}],"28":[{"iid":23559,"L":39.8,"a":2.8,"b":-10.2,"src":"zone_builder_thumbs/28_23559.jpg"},{"iid":6731,"L":35.9,"a":3.0,"b":-7.0,"src":"zone_builder_thumbs/28_6731.jpg"},{"iid":35089,"L":40.3,"a":2.9,"b":-10.2,"src":"zone_builder_thumbs/28_35089.jpg"},{"iid":62078,"L":39.9,"a":2.8,"b":-10.2,"src":"zone_builder_thumbs/28_62078.jpg"}],"75":[{"iid":4091,"L":53.5,"a":-2.0,"b":-36.2,"src":"zone_builder_thumbs/75_4091.jpg"},{"iid":4476,"L":53.3,"a":3.0,"b":-50.7,"src":"zone_builder_thumbs/75_4476.jpg"},{"iid":6759,"L":50.3,"a":-4.4,"b":-26.2,"src":"zone_builder_thumbs/75_6759.jpg"},{"iid":19603,"L":52.5,"a":-5.5,"b":-42.6,"src":"zone_builder_thumbs/75_19603.jpg"},{"iid":6757,"L":52.8,"a":-1.8,"b":-28.6,"src":"zone_builder_thumbs/75_6757.jpg"}],"79":[{"iid":35679,"L":44.3,"a":1.9,"b":-40.9,"src":"zone_builder_thumbs/79_35679.jpg"},{"iid":12059,"L":46.9,"a":7.4,"b":-52.5,"src":"zone_builder_thumbs/79_12059.jpg"},{"iid":4390,"L":46.0,"a":-4.0,"b":-34.7,"src":"zone_builder_thumbs/79_4390.jpg"},{"iid":15994,"L":48.8,"a":4.1,"b":-49.1,"src":"zone_builder_thumbs/79_15994.jpg"},{"iid":12099,"L":44.2,"a":1.9,"b":-40.9,"src":"zone_builder_thumbs/79_12099.jpg"}],"78":[{"iid":15968,"L":46.4,"a":12.0,"b":-42.0,"src":"zone_builder_thumbs/78_15968.jpg"},{"iid":45106,"L":46.1,"a":14.6,"b":-53.2,"src":"zone_builder_thumbs/78_45106.jpg"},{"iid":40051,"L":45.6,"a":8.9,"b":-47.3,"src":"zone_builder_thumbs/78_40051.jpg"}],"77":[{"iid":6705,"L":46.4,"a":-1.3,"b":-25.9,"src":"zone_builder_thumbs/77_6705.jpg"},{"iid":63117,"L":46.7,"a":1.7,"b":-20.2,"src":"zone_builder_thumbs/77_63117.jpg"},{"iid":46015,"L":46.4,"a":1.7,"b":-20.2,"src":"zone_builder_thumbs/77_46015.jpg"},{"iid":35586,"L":46.4,"a":-1.4,"b":-26.1,"src":"zone_builder_thumbs/77_35586.jpg"}],"76":[{"iid":63580,"L":41.0,"a":12.3,"b":-48.7,"src":"zone_builder_thumbs/76_63580.jpg"},{"iid":78054,"L":37.5,"a":24.6,"b":-62.9,"src":"zone_builder_thumbs/76_78054.jpg"},{"iid":40169,"L":40.6,"a":7.5,"b":-42.7,"src":"zone_builder_thumbs/76_40169.jpg"},{"iid":39591,"L":34.8,"a":11.3,"b":-44.7,"src":"zone_builder_thumbs/76_39591.jpg"},{"iid":61472,"L":42.3,"a":14.4,"b":-53.2,"src":"zone_builder_thumbs/76_61472.jpg"},{"iid":62714,"L":38.7,"a":6.4,"b":-45.4,"src":"zone_builder_thumbs/76_62714.jpg"},{"iid":46101,"L":41.0,"a":12.5,"b":-51.9,"src":"zone_builder_thumbs/76_46101.jpg"},{"iid":40724,"L":41.1,"a":12.3,"b":-48.7,"src":"zone_builder_thumbs/76_40724.jpg"},{"iid":39507,"L":42.2,"a":14.4,"b":-53.1,"src":"zone_builder_thumbs/76_39507.jpg"},{"iid":61651,"L":34.8,"a":11.3,"b":-44.7,"src":"zone_builder_thumbs/76_61651.jpg"}],"80":[{"iid":62437,"L":42.7,"a":11.8,"b":-32.7,"src":"zone_builder_thumbs/80_62437.jpg"},{"iid":35109,"L":46.9,"a":13.7,"b":-28.6,"src":"zone_builder_thumbs/80_35109.jpg"},{"iid":15637,"L":46.9,"a":13.5,"b":-36.4,"src":"zone_builder_thumbs/80_15637.jpg"},{"iid":35033,"L":41.9,"a":10.9,"b":-27.2,"src":"zone_builder_thumbs/80_35033.jpg"},{"iid":15374,"L":41.5,"a":14.8,"b":-28.8,"src":"zone_builder_thumbs/80_15374.jpg"},{"iid":34507,"L":46.7,"a":12.2,"b":-31.9,"src":"zone_builder_thumbs/80_34507.jpg"},{"iid":34242,"L":40.4,"a":13.2,"b":-28.3,"src":"zone_builder_thumbs/80_34242.jpg"},{"iid":23560,"L":41.5,"a":11.0,"b":-27.3,"src":"zone_builder_thumbs/80_23560.jpg"},{"iid":34623,"L":42.7,"a":11.5,"b":-32.7,"src":"zone_builder_thumbs/80_34623.jpg"},{"iid":35087,"L":41.7,"a":14.6,"b":-28.8,"src":"zone_builder_thumbs/80_35087.jpg"}],"88":[{"iid":15080,"L":31.9,"a":-0.5,"b":-13.7,"src":"zone_builder_thumbs/88_15080.jpg"},{"iid":61286,"L":28.8,"a":0.4,"b":-17.3,"src":"zone_builder_thumbs/88_61286.jpg"},{"iid":63092,"L":28.4,"a":0.9,"b":-12.2,"src":"zone_builder_thumbs/88_63092.jpg"},{"iid":8353,"L":31.3,"a":-1.6,"b":-10.5,"src":"zone_builder_thumbs/88_8353.jpg"},{"iid":63023,"L":34.0,"a":1.1,"b":-12.8,"src":"zone_builder_thumbs/88_63023.jpg"},{"iid":39839,"L":29.0,"a":0.3,"b":-17.1,"src":"zone_builder_thumbs/88_39839.jpg"}],"87":[{"iid":62202,"L":33.4,"a":2.1,"b":-20.4,"src":"zone_builder_thumbs/87_62202.jpg"},{"iid":39397,"L":34.7,"a":0.0,"b":-21.9,"src":"zone_builder_thumbs/87_39397.jpg"},{"iid":40277,"L":33.0,"a":-0.1,"b":-18.7,"src":"zone_builder_thumbs/87_40277.jpg"},{"iid":62370,"L":33.9,"a":3.9,"b":-20.9,"src":"zone_builder_thumbs/87_62370.jpg"},{"iid":39208,"L":33.2,"a":1.3,"b":-18.2,"src":"zone_builder_thumbs/87_39208.jpg"},{"iid":56825,"L":32.6,"a":1.1,"b":-20.8,"src":"zone_builder_thumbs/87_56825.jpg"},{"iid":61615,"L":33.7,"a":0.7,"b":-18.5,"src":"zone_builder_thumbs/87_61615.jpg"},{"iid":62088,"L":33.0,"a":1.1,"b":-18.7,"src":"zone_builder_thumbs/87_62088.jpg"},{"iid":44614,"L":32.9,"a":2.0,"b":-20.4,"src":"zone_builder_thumbs/87_44614.jpg"},{"iid":39358,"L":33.3,"a":0.8,"b":-18.7,"src":"zone_builder_thumbs/87_39358.jpg"}],"90":[{"iid":19231,"L":33.1,"a":10.8,"b":-25.0,"src":"zone_builder_thumbs/90_19231.jpg"},{"iid":15580,"L":30.7,"a":8.5,"b":-21.1,"src":"zone_builder_thumbs/90_15580.jpg"},{"iid":27064,"L":32.8,"a":14.5,"b":-27.7,"src":"zone_builder_thumbs/90_27064.jpg"},{"iid":15626,"L":35.9,"a":12.5,"b":-27.1,"src":"zone_builder_thumbs/90_15626.jpg"},{"iid":19164,"L":31.6,"a":9.7,"b":-23.2,"src":"zone_builder_thumbs/90_19164.jpg"},{"iid":62045,"L":34.8,"a":11.8,"b":-28.1,"src":"zone_builder_thumbs/90_62045.jpg"},{"iid":34579,"L":35.8,"a":12.8,"b":-27.0,"src":"zone_builder_thumbs/90_34579.jpg"},{"iid":30803,"L":35.0,"a":12.0,"b":-27.8,"src":"zone_builder_thumbs/90_30803.jpg"},{"iid":34600,"L":31.4,"a":9.7,"b":-23.1,"src":"zone_builder_thumbs/90_34600.jpg"},{"iid":61755,"L":31.6,"a":9.9,"b":-23.4,"src":"zone_builder_thumbs/90_61755.jpg"}],"89":[{"iid":3895,"L":27.1,"a":7.6,"b":-20.4,"src":"zone_builder_thumbs/89_3895.jpg"},{"iid":67327,"L":25.8,"a":9.2,"b":-26.7,"src":"zone_builder_thumbs/89_67327.jpg"},{"iid":4103,"L":26.0,"a":7.5,"b":-17.9,"src":"zone_builder_thumbs/89_4103.jpg"},{"iid":62136,"L":25.0,"a":8.3,"b":-21.5,"src":"zone_builder_thumbs/89_62136.jpg"},{"iid":6190,"L":28.8,"a":7.0,"b":-18.9,"src":"zone_builder_thumbs/89_6190.jpg"},{"iid":34562,"L":25.1,"a":7.9,"b":-21.1,"src":"zone_builder_thumbs/89_34562.jpg"},{"iid":4084,"L":25.7,"a":7.5,"b":-18.3,"src":"zone_builder_thumbs/89_4084.jpg"},{"iid":61391,"L":27.4,"a":7.6,"b":-20.6,"src":"zone_builder_thumbs/89_61391.jpg"},{"iid":15639,"L":25.3,"a":7.9,"b":-21.2,"src":"zone_builder_thumbs/89_15639.jpg"}],"86":[{"iid":56748,"L":23.2,"a":9.6,"b":-36.2,"src":"zone_builder_thumbs/86_56748.jpg"},{"iid":4178,"L":29.2,"a":5.8,"b":-30.7,"src":"zone_builder_thumbs/86_4178.jpg"},{"iid":40632,"L":30.6,"a":11.0,"b":-40.3,"src":"zone_builder_thumbs/86_40632.jpg"},{"iid":40364,"L":24.6,"a":14.5,"b":-43.1,"src":"zone_builder_thumbs/86_40364.jpg"},{"iid":61981,"L":23.0,"a":13.0,"b":-38.9,"src":"zone_builder_thumbs/86_61981.jpg"},{"iid":73186,"L":22.3,"a":8.0,"b":-32.2,"src":"zone_builder_thumbs/86_73186.jpg"},{"iid":61260,"L":23.4,"a":9.4,"b":-35.7,"src":"zone_builder_thumbs/86_61260.jpg"},{"iid":63107,"L":24.6,"a":14.3,"b":-42.9,"src":"zone_builder_thumbs/86_63107.jpg"},{"iid":63396,"L":30.6,"a":11.0,"b":-40.3,"src":"zone_builder_thumbs/86_63396.jpg"}],"85":[{"iid":14796,"L":32.9,"a":21.7,"b":-42.7,"src":"zone_builder_thumbs/85_14796.jpg"},{"iid":34335,"L":34.2,"a":15.2,"b":-35.0,"src":"zone_builder_thumbs/85_34335.jpg"},{"iid":34863,"L":33.8,"a":26.7,"b":-48.8,"src":"zone_builder_thumbs/85_34863.jpg"},{"iid":4055,"L":29.4,"a":23.9,"b":-44.5,"src":"zone_builder_thumbs/85_4055.jpg"},{"iid":3961,"L":33.3,"a":26.6,"b":-44.6,"src":"zone_builder_thumbs/85_3961.jpg"},{"iid":11631,"L":31.6,"a":16.1,"b":-37.4,"src":"zone_builder_thumbs/85_11631.jpg"},{"iid":14835,"L":35.8,"a":24.5,"b":-47.1,"src":"zone_builder_thumbs/85_14835.jpg"},{"iid":6413,"L":32.7,"a":22.8,"b":-45.5,"src":"zone_builder_thumbs/85_6413.jpg"},{"iid":4049,"L":33.3,"a":19.5,"b":-40.8,"src":"zone_builder_thumbs/85_4049.jpg"},{"iid":3943,"L":31.7,"a":21.4,"b":-40.2,"src":"zone_builder_thumbs/85_3943.jpg"}],"84":[{"iid":3894,"L":24.8,"a":23.2,"b":-41.8,"src":"zone_builder_thumbs/84_3894.jpg"},{"iid":11051,"L":27.2,"a":27.6,"b":-46.4,"src":"zone_builder_thumbs/84_11051.jpg"},{"iid":4002,"L":24.7,"a":20.0,"b":-38.7,"src":"zone_builder_thumbs/84_4002.jpg"},{"iid":6514,"L":22.5,"a":24.3,"b":-40.1,"src":"zone_builder_thumbs/84_6514.jpg"}],"83":[{"iid":4281,"L":18.2,"a":24.2,"b":-36.9,"src":"zone_builder_thumbs/83_4281.jpg"},{"iid":4006,"L":19.3,"a":17.7,"b":-33.8,"src":"zone_builder_thumbs/83_4006.jpg"},{"iid":8352,"L":16.9,"a":18.7,"b":-33.6,"src":"zone_builder_thumbs/83_8352.jpg"},{"iid":11374,"L":19.6,"a":23.8,"b":-39.0,"src":"zone_builder_thumbs/83_11374.jpg"}],"81":[{"iid":4532,"L":38.1,"a":43.3,"b":-43.7,"src":"zone_builder_thumbs/81_4532.jpg"}],"72":[{"iid":62454,"L":19.1,"a":-16.4,"b":-1.1,"src":"zone_builder_thumbs/72_62454.jpg"},{"iid":11659,"L":21.0,"a":-19.9,"b":2.2,"src":"zone_builder_thumbs/72_11659.jpg"},{"iid":4495,"L":22.7,"a":-16.5,"b":-0.1,"src":"zone_builder_thumbs/72_4495.jpg"},{"iid":11666,"L":19.6,"a":-19.1,"b":2.2,"src":"zone_builder_thumbs/72_11666.jpg"},{"iid":26358,"L":18.6,"a":-16.3,"b":-1.2,"src":"zone_builder_thumbs/72_26358.jpg"}],"74":[{"iid":39607,"L":23.6,"a":-11.1,"b":-5.4,"src":"zone_builder_thumbs/74_39607.jpg"},{"iid":61488,"L":24.1,"a":-10.3,"b":-0.2,"src":"zone_builder_thumbs/74_61488.jpg"},{"iid":50096,"L":27.8,"a":-8.7,"b":-6.2,"src":"zone_builder_thumbs/74_50096.jpg"},{"iid":4533,"L":23.7,"a":-14.6,"b":-8.7,"src":"zone_builder_thumbs/74_4533.jpg"},{"iid":61702,"L":20.5,"a":-11.6,"b":-2.0,"src":"zone_builder_thumbs/74_61702.jpg"},{"iid":39548,"L":24.1,"a":-8.8,"b":-8.3,"src":"zone_builder_thumbs/74_39548.jpg"},{"iid":57396,"L":24.6,"a":-13.3,"b":-1.8,"src":"zone_builder_thumbs/74_57396.jpg"},{"iid":61928,"L":21.4,"a":-13.2,"b":-3.9,"src":"zone_builder_thumbs/74_61928.jpg"},{"iid":63240,"L":25.9,"a":-10.1,"b":-6.8,"src":"zone_builder_thumbs/74_63240.jpg"},{"iid":12079,"L":24.2,"a":-12.8,"b":-6.8,"src":"zone_builder_thumbs/74_12079.jpg"}],"68":[{"iid":56846,"L":18.6,"a":-10.1,"b":-7.4,"src":"zone_builder_thumbs/68_56846.jpg"},{"iid":55649,"L":18.8,"a":-13.4,"b":-4.2,"src":"zone_builder_thumbs/68_55649.jpg"},{"iid":39594,"L":21.4,"a":-10.4,"b":-5.0,"src":"zone_builder_thumbs/68_39594.jpg"},{"iid":39585,"L":17.0,"a":-10.8,"b":-3.9,"src":"zone_builder_thumbs/68_39585.jpg"},{"iid":50316,"L":21.2,"a":-9.4,"b":-8.0,"src":"zone_builder_thumbs/68_50316.jpg"},{"iid":61963,"L":16.8,"a":-11.5,"b":-6.5,"src":"zone_builder_thumbs/68_61963.jpg"},{"iid":57848,"L":17.8,"a":-10.0,"b":-9.2,"src":"zone_builder_thumbs/68_57848.jpg"},{"iid":50737,"L":18.2,"a":-8.9,"b":-6.1,"src":"zone_builder_thumbs/68_50737.jpg"},{"iid":68067,"L":17.3,"a":-12.1,"b":-4.5,"src":"zone_builder_thumbs/68_68067.jpg"},{"iid":50126,"L":17.0,"a":-10.3,"b":-6.7,"src":"zone_builder_thumbs/68_50126.jpg"}],"67":[{"iid":62336,"L":14.4,"a":-6.7,"b":-7.1,"src":"zone_builder_thumbs/67_62336.jpg"},{"iid":61656,"L":16.2,"a":-7.4,"b":-2.5,"src":"zone_builder_thumbs/67_61656.jpg"},{"iid":61801,"L":13.5,"a":-9.7,"b":-4.2,"src":"zone_builder_thumbs/67_61801.jpg"},{"iid":45557,"L":16.9,"a":-6.6,"b":-7.0,"src":"zone_builder_thumbs/67_45557.jpg"},{"iid":62685,"L":13.9,"a":-5.6,"b":-6.9,"src":"zone_builder_thumbs/67_62685.jpg"},{"iid":45556,"L":15.4,"a":-6.6,"b":-7.6,"src":"zone_builder_thumbs/67_45556.jpg"},{"iid":39483,"L":13.2,"a":-9.5,"b":-4.0,"src":"zone_builder_thumbs/67_39483.jpg"},{"iid":49735,"L":14.1,"a":-6.9,"b":-7.2,"src":"zone_builder_thumbs/67_49735.jpg"},{"iid":39420,"L":16.3,"a":-7.2,"b":-2.7,"src":"zone_builder_thumbs/67_39420.jpg"},{"iid":51199,"L":13.9,"a":-5.6,"b":-6.9,"src":"zone_builder_thumbs/67_51199.jpg"}],"69":[{"iid":4530,"L":27.3,"a":-13.1,"b":-14.6,"src":"zone_builder_thumbs/69_4530.jpg"},{"iid":11252,"L":24.3,"a":-9.8,"b":-14.0,"src":"zone_builder_thumbs/69_11252.jpg"},{"iid":4109,"L":28.8,"a":-11.6,"b":-17.7,"src":"zone_builder_thumbs/69_4109.jpg"},{"iid":4134,"L":29.7,"a":-13.4,"b":-15.5,"src":"zone_builder_thumbs/69_4134.jpg"},{"iid":4042,"L":25.7,"a":-13.0,"b":-12.7,"src":"zone_builder_thumbs/69_4042.jpg"},{"iid":4032,"L":25.9,"a":-12.5,"b":-14.4,"src":"zone_builder_thumbs/69_4032.jpg"},{"iid":34328,"L":28.6,"a":-11.8,"b":-17.5,"src":"zone_builder_thumbs/69_34328.jpg"}],"70":[{"iid":8582,"L":22.9,"a":-5.8,"b":-20.7,"src":"zone_builder_thumbs/70_8582.jpg"}],"110":[{"iid":61710,"L":42.5,"a":-26.2,"b":-1.3,"src":"zone_builder_thumbs/110_61710.jpg"},{"iid":50341,"L":42.5,"a":-26.4,"b":-1.3,"src":"zone_builder_thumbs/110_50341.jpg"}],"109":[{"iid":79057,"L":33.2,"a":-24.4,"b":-2.0,"src":"zone_builder_thumbs/109_79057.jpg"}],"73":[{"iid":51743,"L":31.3,"a":-10.8,"b":-2.4,"src":"zone_builder_thumbs/73_51743.jpg"},{"iid":4156,"L":29.0,"a":-13.4,"b":-3.9,"src":"zone_builder_thumbs/73_4156.jpg"},{"iid":68377,"L":29.1,"a":-11.5,"b":-0.9,"src":"zone_builder_thumbs/73_68377.jpg"},{"iid":63053,"L":29.5,"a":-10.5,"b":-0.6,"src":"zone_builder_thumbs/73_63053.jpg"}],"71":[{"iid":4248,"L":33.5,"a":-17.4,"b":-12.4,"src":"zone_builder_thumbs/71_4248.jpg"},{"iid":73686,"L":37.7,"a":-19.9,"b":-8.7,"src":"zone_builder_thumbs/71_73686.jpg"},{"iid":8210,"L":34.9,"a":-15.6,"b":-16.2,"src":"zone_builder_thumbs/71_8210.jpg"},{"iid":73247,"L":32.2,"a":-16.6,"b":-10.2,"src":"zone_builder_thumbs/71_73247.jpg"},{"iid":6479,"L":32.0,"a":-16.1,"b":-14.1,"src":"zone_builder_thumbs/71_6479.jpg"},{"iid":73223,"L":35.7,"a":-18.6,"b":-9.6,"src":"zone_builder_thumbs/71_73223.jpg"},{"iid":78782,"L":37.0,"a":-21.7,"b":-9.8,"src":"zone_builder_thumbs/71_78782.jpg"},{"iid":78686,"L":33.4,"a":-16.6,"b":-10.0,"src":"zone_builder_thumbs/71_78686.jpg"},{"iid":4167,"L":31.6,"a":-16.3,"b":-13.1,"src":"zone_builder_thumbs/71_4167.jpg"},{"iid":4145,"L":32.5,"a":-17.5,"b":-12.2,"src":"zone_builder_thumbs/71_4145.jpg"}],"107":[{"iid":6300,"L":43.9,"a":-19.5,"b":-17.9,"src":"zone_builder_thumbs/107_6300.jpg"},{"iid":11502,"L":44.1,"a":-17.4,"b":-20.3,"src":"zone_builder_thumbs/107_11502.jpg"}],"158":[{"iid":50433,"L":60.0,"a":39.1,"b":62.4,"src":"zone_builder_thumbs/158_50433.jpg"},{"iid":51770,"L":62.6,"a":34.9,"b":64.0,"src":"zone_builder_thumbs/158_51770.jpg"},{"iid":61463,"L":62.2,"a":42.2,"b":64.1,"src":"zone_builder_thumbs/158_61463.jpg"},{"iid":63275,"L":62.1,"a":34.5,"b":63.1,"src":"zone_builder_thumbs/158_63275.jpg"},{"iid":61871,"L":59.5,"a":39.0,"b":62.5,"src":"zone_builder_thumbs/158_61871.jpg"},{"iid":56398,"L":62.2,"a":41.9,"b":63.9,"src":"zone_builder_thumbs/158_56398.jpg"}],"150":[{"iid":6588,"L":72.0,"a":25.0,"b":36.8,"src":"zone_builder_thumbs/150_6588.jpg"},{"iid":4298,"L":75.8,"a":24.4,"b":35.2,"src":"zone_builder_thumbs/150_4298.jpg"}],"120":[{"iid":34974,"L":71.4,"a":32.6,"b":31.1,"src":"zone_builder_thumbs/120_34974.jpg"},{"iid":3997,"L":67.7,"a":26.6,"b":25.1,"src":"zone_builder_thumbs/120_3997.jpg"},{"iid":62523,"L":71.6,"a":32.7,"b":31.1,"src":"zone_builder_thumbs/120_62523.jpg"},{"iid":31009,"L":71.6,"a":32.7,"b":31.1,"src":"zone_builder_thumbs/120_31009.jpg"}],"154":[{"iid":26693,"L":83.4,"a":7.6,"b":28.0,"src":"zone_builder_thumbs/154_26693.jpg"},{"iid":34258,"L":78.5,"a":12.2,"b":29.0,"src":"zone_builder_thumbs/154_34258.jpg"},{"iid":31118,"L":82.6,"a":12.0,"b":29.4,"src":"zone_builder_thumbs/154_31118.jpg"},{"iid":34247,"L":85.8,"a":7.9,"b":27.6,"src":"zone_builder_thumbs/154_34247.jpg"},{"iid":40139,"L":81.6,"a":10.6,"b":27.8,"src":"zone_builder_thumbs/154_40139.jpg"},{"iid":27356,"L":78.6,"a":12.3,"b":29.0,"src":"zone_builder_thumbs/154_27356.jpg"},{"iid":62695,"L":81.8,"a":10.6,"b":27.8,"src":"zone_builder_thumbs/154_62695.jpg"},{"iid":62399,"L":83.4,"a":7.6,"b":28.1,"src":"zone_builder_thumbs/154_62399.jpg"},{"iid":27182,"L":85.8,"a":7.9,"b":27.6,"src":"zone_builder_thumbs/154_27182.jpg"},{"iid":34967,"L":82.6,"a":12.0,"b":29.4,"src":"zone_builder_thumbs/154_34967.jpg"}],"155":[{"iid":4119,"L":81.1,"a":7.2,"b":18.2,"src":"zone_builder_thumbs/155_4119.jpg"},{"iid":4227,"L":84.4,"a":9.0,"b":16.3,"src":"zone_builder_thumbs/155_4227.jpg"},{"iid":84560,"L":83.1,"a":4.3,"b":16.4,"src":"zone_builder_thumbs/155_84560.jpg"},{"iid":34520,"L":78.3,"a":9.7,"b":18.2,"src":"zone_builder_thumbs/155_34520.jpg"},{"iid":4097,"L":82.8,"a":6.6,"b":20.3,"src":"zone_builder_thumbs/155_4097.jpg"},{"iid":4204,"L":78.5,"a":9.7,"b":18.2,"src":"zone_builder_thumbs/155_4204.jpg"},{"iid":35192,"L":82.8,"a":6.6,"b":20.3,"src":"zone_builder_thumbs/155_35192.jpg"}],"157":[{"iid":63259,"L":73.4,"a":4.4,"b":20.8,"src":"zone_builder_thumbs/157_63259.jpg"},{"iid":11597,"L":70.4,"a":7.5,"b":29.3,"src":"zone_builder_thumbs/157_11597.jpg"},{"iid":4160,"L":78.4,"a":4.1,"b":22.3,"src":"zone_builder_thumbs/157_4160.jpg"},{"iid":4388,"L":71.2,"a":5.4,"b":24.1,"src":"zone_builder_thumbs/157_4388.jpg"},{"iid":4128,"L":75.8,"a":4.7,"b":24.5,"src":"zone_builder_thumbs/157_4128.jpg"},{"iid":50921,"L":75.7,"a":3.1,"b":19.8,"src":"zone_builder_thumbs/157_50921.jpg"},{"iid":4421,"L":71.0,"a":3.9,"b":23.2,"src":"zone_builder_thumbs/157_4421.jpg"},{"iid":46329,"L":75.0,"a":3.0,"b":19.0,"src":"zone_builder_thumbs/157_46329.jpg"},{"iid":46359,"L":73.1,"a":4.7,"b":20.7,"src":"zone_builder_thumbs/157_46359.jpg"}],"156":[{"iid":4353,"L":74.0,"a":3.9,"b":15.2,"src":"zone_builder_thumbs/156_4353.jpg"},{"iid":39837,"L":68.6,"a":4.6,"b":14.8,"src":"zone_builder_thumbs/156_39837.jpg"},{"iid":56593,"L":74.8,"a":2.1,"b":11.7,"src":"zone_builder_thumbs/156_56593.jpg"},{"iid":4583,"L":71.2,"a":2.5,"b":17.3,"src":"zone_builder_thumbs/156_4583.jpg"},{"iid":4470,"L":77.1,"a":3.9,"b":16.0,"src":"zone_builder_thumbs/156_4470.jpg"},{"iid":4105,"L":72.0,"a":5.4,"b":17.1,"src":"zone_builder_thumbs/156_4105.jpg"},{"iid":62065,"L":71.2,"a":4.3,"b":13.8,"src":"zone_builder_thumbs/156_62065.jpg"},{"iid":62543,"L":69.4,"a":4.6,"b":16.5,"src":"zone_builder_thumbs/156_62543.jpg"},{"iid":4230,"L":73.0,"a":3.4,"b":16.6,"src":"zone_builder_thumbs/156_4230.jpg"},{"iid":6713,"L":69.8,"a":3.5,"b":15.0,"src":"zone_builder_thumbs/156_6713.jpg"}],"151":[{"iid":34444,"L":70.2,"a":12.2,"b":26.6,"src":"zone_builder_thumbs/151_34444.jpg"},{"iid":30598,"L":69.8,"a":13.2,"b":31.0,"src":"zone_builder_thumbs/151_30598.jpg"},{"iid":62729,"L":74.0,"a":12.7,"b":25.7,"src":"zone_builder_thumbs/151_62729.jpg"},{"iid":15746,"L":73.9,"a":12.4,"b":25.8,"src":"zone_builder_thumbs/151_15746.jpg"},{"iid":62216,"L":70.0,"a":12.2,"b":26.6,"src":"zone_builder_thumbs/151_62216.jpg"},{"iid":31310,"L":70.0,"a":12.2,"b":26.6,"src":"zone_builder_thumbs/151_31310.jpg"}],"176":[{"iid":4469,"L":64.2,"a":13.2,"b":27.9,"src":"zone_builder_thumbs/176_4469.jpg"},{"iid":15711,"L":64.3,"a":11.5,"b":18.7,"src":"zone_builder_thumbs/176_15711.jpg"}],"177":[{"iid":35183,"L":66.8,"a":5.7,"b":22.5,"src":"zone_builder_thumbs/177_35183.jpg"},{"iid":46242,"L":67.4,"a":3.5,"b":16.0,"src":"zone_builder_thumbs/177_46242.jpg"},{"iid":34518,"L":63.4,"a":4.0,"b":20.8,"src":"zone_builder_thumbs/177_34518.jpg"},{"iid":4468,"L":63.9,"a":6.5,"b":24.7,"src":"zone_builder_thumbs/177_4468.jpg"},{"iid":4486,"L":69.1,"a":5.9,"b":19.9,"src":"zone_builder_thumbs/177_4486.jpg"},{"iid":4061,"L":65.9,"a":3.8,"b":18.6,"src":"zone_builder_thumbs/177_4061.jpg"},{"iid":4254,"L":66.3,"a":6.4,"b":19.6,"src":"zone_builder_thumbs/177_4254.jpg"},{"iid":4612,"L":65.8,"a":7.9,"b":23.0,"src":"zone_builder_thumbs/177_4612.jpg"},{"iid":4173,"L":65.4,"a":5.2,"b":24.7,"src":"zone_builder_thumbs/177_4173.jpg"},{"iid":34463,"L":64.3,"a":3.5,"b":22.5,"src":"zone_builder_thumbs/177_34463.jpg"}],"175":[{"iid":15664,"L":59.6,"a":4.8,"b":18.6,"src":"zone_builder_thumbs/175_15664.jpg"},{"iid":8656,"L":60.2,"a":3.2,"b":12.2,"src":"zone_builder_thumbs/175_8656.jpg"},{"iid":61643,"L":57.0,"a":5.9,"b":24.1,"src":"zone_builder_thumbs/175_61643.jpg"},{"iid":3901,"L":63.8,"a":5.8,"b":16.9,"src":"zone_builder_thumbs/175_3901.jpg"},{"iid":4398,"L":56.4,"a":4.8,"b":19.8,"src":"zone_builder_thumbs/175_4398.jpg"},{"iid":44562,"L":62.4,"a":3.3,"b":14.5,"src":"zone_builder_thumbs/175_44562.jpg"},{"iid":4039,"L":58.8,"a":4.3,"b":14.8,"src":"zone_builder_thumbs/175_4039.jpg"},{"iid":4203,"L":57.0,"a":4.2,"b":17.0,"src":"zone_builder_thumbs/175_4203.jpg"},{"iid":4166,"L":61.3,"a":5.6,"b":19.5,"src":"zone_builder_thumbs/175_4166.jpg"},{"iid":4275,"L":59.8,"a":4.2,"b":20.5,"src":"zone_builder_thumbs/175_4275.jpg"}],"149":[{"iid":63501,"L":76.4,"a":14.8,"b":44.2,"src":"zone_builder_thumbs/149_63501.jpg"},{"iid":46203,"L":76.5,"a":14.8,"b":44.2,"src":"zone_builder_thumbs/149_46203.jpg"}],"148":[{"iid":19116,"L":65.2,"a":14.6,"b":62.5,"src":"zone_builder_thumbs/148_19116.jpg"},{"iid":4186,"L":66.9,"a":26.3,"b":63.6,"src":"zone_builder_thumbs/148_4186.jpg"},{"iid":34658,"L":65.2,"a":14.6,"b":62.5,"src":"zone_builder_thumbs/148_34658.jpg"}],"153":[{"iid":35100,"L":76.3,"a":7.8,"b":58.5,"src":"zone_builder_thumbs/153_35100.jpg"},{"iid":4118,"L":73.0,"a":-2.7,"b":55.7,"src":"zone_builder_thumbs/153_4118.jpg"},{"iid":4194,"L":72.4,"a":0.5,"b":62.4,"src":"zone_builder_thumbs/153_4194.jpg"},{"iid":23558,"L":76.3,"a":7.8,"b":58.5,"src":"zone_builder_thumbs/153_23558.jpg"}],"152":[{"iid":34933,"L":83.8,"a":0.3,"b":50.1,"src":"zone_builder_thumbs/152_34933.jpg"},{"iid":4526,"L":82.5,"a":-4.3,"b":57.2,"src":"zone_builder_thumbs/152_4526.jpg"},{"iid":15132,"L":83.9,"a":0.3,"b":50.0,"src":"zone_builder_thumbs/152_15132.jpg"}],"216":[{"iid":4232,"L":85.8,"a":-10.0,"b":47.4,"src":"zone_builder_thumbs/216_4232.jpg"},{"iid":19567,"L":87.9,"a":-15.3,"b":53.2,"src":"zone_builder_thumbs/216_19567.jpg"},{"iid":34976,"L":86.0,"a":-14.0,"b":45.8,"src":"zone_builder_thumbs/216_34976.jpg"},{"iid":4335,"L":84.7,"a":-11.1,"b":51.2,"src":"zone_builder_thumbs/216_4335.jpg"},{"iid":15156,"L":85.9,"a":-13.7,"b":45.7,"src":"zone_builder_thumbs/216_15156.jpg"}],"215":[{"iid":23676,"L":77.0,"a":-11.7,"b":49.6,"src":"zone_builder_thumbs/215_23676.jpg"},{"iid":34786,"L":78.3,"a":-10.6,"b":44.7,"src":"zone_builder_thumbs/215_34786.jpg"},{"iid":31045,"L":73.9,"a":-14.7,"b":46.8,"src":"zone_builder_thumbs/215_31045.jpg"},{"iid":27303,"L":74.3,"a":-13.8,"b":53.2,"src":"zone_builder_thumbs/215_27303.jpg"},{"iid":27168,"L":73.1,"a":-11.5,"b":47.8,"src":"zone_builder_thumbs/215_27168.jpg"},{"iid":34568,"L":78.5,"a":-14.2,"b":50.5,"src":"zone_builder_thumbs/215_34568.jpg"},{"iid":27266,"L":74.4,"a":-14.0,"b":48.4,"src":"zone_builder_thumbs/215_27266.jpg"},{"iid":34619,"L":78.4,"a":-11.4,"b":49.2,"src":"zone_builder_thumbs/215_34619.jpg"},{"iid":62569,"L":77.9,"a":-14.2,"b":50.9,"src":"zone_builder_thumbs/215_62569.jpg"},{"iid":27323,"L":78.1,"a":-14.2,"b":50.5,"src":"zone_builder_thumbs/215_27323.jpg"}],"217":[{"iid":62735,"L":78.0,"a":-20.6,"b":45.6,"src":"zone_builder_thumbs/217_62735.jpg"},{"iid":4473,"L":84.1,"a":-22.3,"b":54.7,"src":"zone_builder_thumbs/217_4473.jpg"},{"iid":34891,"L":76.1,"a":-20.0,"b":44.7,"src":"zone_builder_thumbs/217_34891.jpg"},{"iid":8294,"L":84.6,"a":-21.4,"b":54.2,"src":"zone_builder_thumbs/217_8294.jpg"}],"201":[{"iid":11476,"L":87.6,"a":-21.2,"b":9.4,"src":"zone_builder_thumbs/201_11476.jpg"}],"202":[{"iid":35011,"L":90.3,"a":-11.9,"b":-0.5,"src":"zone_builder_thumbs/202_35011.jpg"},{"iid":4267,"L":91.1,"a":-10.7,"b":8.1,"src":"zone_builder_thumbs/202_4267.jpg"},{"iid":62019,"L":90.3,"a":-11.9,"b":-0.5,"src":"zone_builder_thumbs/202_62019.jpg"}],"206":[{"iid":4073,"L":82.3,"a":-10.0,"b":4.2,"src":"zone_builder_thumbs/206_4073.jpg"},{"iid":4099,"L":79.3,"a":-14.0,"b":6.5,"src":"zone_builder_thumbs/206_4099.jpg"},{"iid":4130,"L":83.8,"a":-14.1,"b":7.0,"src":"zone_builder_thumbs/206_4130.jpg"},{"iid":4143,"L":79.3,"a":-7.5,"b":3.4,"src":"zone_builder_thumbs/206_4143.jpg"},{"iid":27004,"L":85.6,"a":-9.1,"b":3.5,"src":"zone_builder_thumbs/206_27004.jpg"},{"iid":4303,"L":82.2,"a":-7.3,"b":3.7,"src":"zone_builder_thumbs/206_4303.jpg"}],"205":[{"iid":4512,"L":74.7,"a":-12.3,"b":16.1,"src":"zone_builder_thumbs/205_4512.jpg"},{"iid":3988,"L":78.3,"a":-11.3,"b":11.2,"src":"zone_builder_thumbs/205_3988.jpg"}],"212":[{"iid":62673,"L":74.7,"a":-7.8,"b":27.4,"src":"zone_builder_thumbs/212_62673.jpg"},{"iid":8641,"L":79.8,"a":-8.5,"b":29.1,"src":"zone_builder_thumbs/212_8641.jpg"},{"iid":6694,"L":70.8,"a":-8.4,"b":26.5,"src":"zone_builder_thumbs/212_6694.jpg"},{"iid":10933,"L":72.2,"a":-7.2,"b":30.4,"src":"zone_builder_thumbs/212_10933.jpg"},{"iid":15504,"L":76.9,"a":-5.9,"b":27.3,"src":"zone_builder_thumbs/212_15504.jpg"},{"iid":6454,"L":78.9,"a":-8.6,"b":26.8,"src":"zone_builder_thumbs/212_6454.jpg"},{"iid":35154,"L":74.7,"a":-7.8,"b":27.0,"src":"zone_builder_thumbs/212_35154.jpg"},{"iid":10826,"L":74.8,"a":-7.9,"b":27.3,"src":"zone_builder_thumbs/212_10826.jpg"}],"219":[{"iid":72386,"L":85.2,"a":-10.9,"b":25.7,"src":"zone_builder_thumbs/219_72386.jpg"},{"iid":73546,"L":80.1,"a":-13.4,"b":25.2,"src":"zone_builder_thumbs/219_73546.jpg"},{"iid":72741,"L":86.1,"a":-11.6,"b":24.7,"src":"zone_builder_thumbs/219_72741.jpg"}],"220":[{"iid":62609,"L":87.6,"a":-6.6,"b":26.9,"src":"zone_builder_thumbs/220_62609.jpg"},{"iid":6758,"L":87.2,"a":-10.0,"b":34.3,"src":"zone_builder_thumbs/220_6758.jpg"},{"iid":63272,"L":91.7,"a":-10.2,"b":22.2,"src":"zone_builder_thumbs/220_63272.jpg"},{"iid":4311,"L":85.0,"a":-8.0,"b":21.0,"src":"zone_builder_thumbs/220_4311.jpg"},{"iid":34596,"L":84.6,"a":-5.7,"b":31.8,"src":"zone_builder_thumbs/220_34596.jpg"},{"iid":40045,"L":83.4,"a":-5.9,"b":25.5,"src":"zone_builder_thumbs/220_40045.jpg"},{"iid":62350,"L":88.8,"a":-5.4,"b":31.3,"src":"zone_builder_thumbs/220_62350.jpg"},{"iid":39546,"L":87.4,"a":-5.8,"b":22.7,"src":"zone_builder_thumbs/220_39546.jpg"},{"iid":68400,"L":83.9,"a":-7.6,"b":28.7,"src":"zone_builder_thumbs/220_68400.jpg"},{"iid":84853,"L":89.1,"a":-11.3,"b":24.2,"src":"zone_builder_thumbs/220_84853.jpg"}],"195":[{"iid":8634,"L":84.3,"a":-0.2,"b":20.0,"src":"zone_builder_thumbs/195_8634.jpg"},{"iid":39991,"L":89.9,"a":-1.0,"b":24.2,"src":"zone_builder_thumbs/195_39991.jpg"},{"iid":85031,"L":80.1,"a":-0.1,"b":20.1,"src":"zone_builder_thumbs/195_85031.jpg"},{"iid":4489,"L":87.4,"a":-1.6,"b":19.1,"src":"zone_builder_thumbs/195_4489.jpg"},{"iid":85728,"L":84.2,"a":1.5,"b":18.3,"src":"zone_builder_thumbs/195_85728.jpg"},{"iid":84120,"L":85.4,"a":-0.9,"b":18.9,"src":"zone_builder_thumbs/195_84120.jpg"},{"iid":62529,"L":84.7,"a":-0.2,"b":21.3,"src":"zone_builder_thumbs/195_62529.jpg"},{"iid":4466,"L":86.3,"a":-2.2,"b":19.6,"src":"zone_builder_thumbs/195_4466.jpg"},{"iid":45346,"L":84.6,"a":-0.2,"b":21.3,"src":"zone_builder_thumbs/195_45346.jpg"}],"196":[{"iid":27273,"L":82.2,"a":-4.5,"b":14.4,"src":"zone_builder_thumbs/196_27273.jpg"},{"iid":6585,"L":81.1,"a":-6.1,"b":19.7,"src":"zone_builder_thumbs/196_6585.jpg"},{"iid":72643,"L":82.8,"a":-7.7,"b":16.4,"src":"zone_builder_thumbs/196_72643.jpg"},{"iid":72743,"L":85.7,"a":-3.8,"b":13.6,"src":"zone_builder_thumbs/196_72743.jpg"},{"iid":34426,"L":82.1,"a":-4.2,"b":14.0,"src":"zone_builder_thumbs/196_34426.jpg"},{"iid":84158,"L":85.6,"a":-3.6,"b":13.7,"src":"zone_builder_thumbs/196_84158.jpg"}],"197":[{"iid":40043,"L":90.8,"a":-4.8,"b":17.7,"src":"zone_builder_thumbs/197_40043.jpg"},{"iid":40140,"L":93.2,"a":-2.5,"b":10.3,"src":"zone_builder_thumbs/197_40140.jpg"},{"iid":62580,"L":90.8,"a":-4.8,"b":17.7,"src":"zone_builder_thumbs/197_62580.jpg"}],"218":[{"iid":3939,"L":90.2,"a":-18.5,"b":22.9,"src":"zone_builder_thumbs/218_3939.jpg"},{"iid":62074,"L":91.3,"a":-26.8,"b":31.3,"src":"zone_builder_thumbs/218_62074.jpg"},{"iid":3957,"L":87.4,"a":-17.2,"b":32.9,"src":"zone_builder_thumbs/218_3957.jpg"},{"iid":3950,"L":88.0,"a":-15.2,"b":24.6,"src":"zone_builder_thumbs/218_3950.jpg"},{"iid":15283,"L":91.2,"a":-26.7,"b":31.2,"src":"zone_builder_thumbs/218_15283.jpg"}],"211":[{"iid":6506,"L":63.4,"a":-6.2,"b":27.4,"src":"zone_builder_thumbs/211_6506.jpg"},{"iid":11543,"L":61.8,"a":-7.8,"b":19.6,"src":"zone_builder_thumbs/211_11543.jpg"},{"iid":34644,"L":58.1,"a":-7.5,"b":29.6,"src":"zone_builder_thumbs/211_34644.jpg"},{"iid":27326,"L":58.4,"a":-7.4,"b":29.3,"src":"zone_builder_thumbs/211_27326.jpg"}],"210":[{"iid":62010,"L":61.6,"a":-3.0,"b":16.2,"src":"zone_builder_thumbs/210_62010.jpg"},{"iid":38856,"L":62.7,"a":-1.7,"b":17.9,"src":"zone_builder_thumbs/210_38856.jpg"},{"iid":34830,"L":60.3,"a":-2.1,"b":14.7,"src":"zone_builder_thumbs/210_34830.jpg"},{"iid":85635,"L":60.3,"a":-3.5,"b":17.3,"src":"zone_builder_thumbs/210_85635.jpg"},{"iid":39756,"L":61.6,"a":-3.0,"b":16.2,"src":"zone_builder_thumbs/210_39756.jpg"}],"213":[{"iid":62302,"L":65.6,"a":-3.2,"b":12.0,"src":"zone_builder_thumbs/213_62302.jpg"},{"iid":40362,"L":67.4,"a":-3.0,"b":7.6,"src":"zone_builder_thumbs/213_40362.jpg"},{"iid":61378,"L":65.4,"a":-1.9,"b":15.4,"src":"zone_builder_thumbs/213_61378.jpg"},{"iid":38924,"L":67.2,"a":-4.5,"b":10.5,"src":"zone_builder_thumbs/213_38924.jpg"},{"iid":62224,"L":65.2,"a":-3.8,"b":14.8,"src":"zone_builder_thumbs/213_62224.jpg"},{"iid":39778,"L":67.3,"a":-2.3,"b":12.6,"src":"zone_builder_thumbs/213_39778.jpg"},{"iid":39783,"L":66.3,"a":-1.9,"b":11.5,"src":"zone_builder_thumbs/213_39783.jpg"},{"iid":39909,"L":66.0,"a":-4.0,"b":13.6,"src":"zone_builder_thumbs/213_39909.jpg"},{"iid":39915,"L":65.7,"a":-4.6,"b":11.7,"src":"zone_builder_thumbs/213_39915.jpg"},{"iid":45177,"L":66.4,"a":-2.9,"b":13.6,"src":"zone_builder_thumbs/213_45177.jpg"}],"214":[{"iid":38939,"L":71.6,"a":-4.3,"b":16.3,"src":"zone_builder_thumbs/214_38939.jpg"},{"iid":4052,"L":70.7,"a":-7.5,"b":21.3,"src":"zone_builder_thumbs/214_4052.jpg"},{"iid":62545,"L":76.4,"a":-5.4,"b":15.6,"src":"zone_builder_thumbs/214_62545.jpg"},{"iid":62110,"L":69.8,"a":-4.0,"b":12.8,"src":"zone_builder_thumbs/214_62110.jpg"},{"iid":40004,"L":71.0,"a":-2.6,"b":19.6,"src":"zone_builder_thumbs/214_40004.jpg"},{"iid":39823,"L":68.7,"a":-3.0,"b":16.4,"src":"zone_builder_thumbs/214_39823.jpg"},{"iid":39832,"L":72.5,"a":-3.0,"b":13.0,"src":"zone_builder_thumbs/214_39832.jpg"},{"iid":45532,"L":68.9,"a":-3.2,"b":14.6,"src":"zone_builder_thumbs/214_45532.jpg"},{"iid":34975,"L":69.9,"a":-4.1,"b":16.8,"src":"zone_builder_thumbs/214_34975.jpg"},{"iid":62426,"L":73.1,"a":-3.0,"b":14.6,"src":"zone_builder_thumbs/214_62426.jpg"}],"189":[{"iid":4429,"L":70.8,"a":-1.4,"b":9.0,"src":"zone_builder_thumbs/189_4429.jpg"},{"iid":40143,"L":75.5,"a":-1.9,"b":5.5,"src":"zone_builder_thumbs/189_40143.jpg"},{"iid":4379,"L":70.2,"a":0.7,"b":9.9,"src":"zone_builder_thumbs/189_4379.jpg"},{"iid":8597,"L":70.1,"a":-0.2,"b":9.4,"src":"zone_builder_thumbs/189_8597.jpg"},{"iid":62697,"L":75.2,"a":-1.9,"b":5.5,"src":"zone_builder_thumbs/189_62697.jpg"}],"103":[{"iid":15418,"L":60.8,"a":-8.2,"b":-0.9,"src":"zone_builder_thumbs/103_15418.jpg"},{"iid":19596,"L":56.8,"a":-8.4,"b":-0.3,"src":"zone_builder_thumbs/103_19596.jpg"},{"iid":34633,"L":62.4,"a":-9.8,"b":0.7,"src":"zone_builder_thumbs/103_34633.jpg"},{"iid":15474,"L":60.3,"a":-7.5,"b":-1.0,"src":"zone_builder_thumbs/103_15474.jpg"},{"iid":62464,"L":57.0,"a":-8.4,"b":-0.3,"src":"zone_builder_thumbs/103_62464.jpg"},{"iid":62405,"L":62.2,"a":-9.8,"b":0.7,"src":"zone_builder_thumbs/103_62405.jpg"},{"iid":34351,"L":56.9,"a":-8.4,"b":-0.3,"src":"zone_builder_thumbs/103_34351.jpg"},{"iid":35036,"L":60.7,"a":-8.1,"b":-0.9,"src":"zone_builder_thumbs/103_35036.jpg"},{"iid":15349,"L":62.4,"a":-9.8,"b":0.7,"src":"zone_builder_thumbs/103_15349.jpg"},{"iid":35070,"L":60.3,"a":-7.5,"b":-1.0,"src":"zone_builder_thumbs/103_35070.jpg"}],"102":[{"iid":15419,"L":67.6,"a":-9.3,"b":-1.2,"src":"zone_builder_thumbs/102_15419.jpg"},{"iid":19563,"L":63.5,"a":-10.0,"b":-4.0,"src":"zone_builder_thumbs/102_19563.jpg"},{"iid":38815,"L":67.5,"a":-10.5,"b":-4.8,"src":"zone_builder_thumbs/102_38815.jpg"},{"iid":15507,"L":66.1,"a":-7.6,"b":0.4,"src":"zone_builder_thumbs/102_15507.jpg"},{"iid":34743,"L":67.6,"a":-9.3,"b":-1.2,"src":"zone_builder_thumbs/102_34743.jpg"},{"iid":62293,"L":67.5,"a":-10.5,"b":-4.8,"src":"zone_builder_thumbs/102_62293.jpg"},{"iid":34209,"L":63.5,"a":-10.0,"b":-4.0,"src":"zone_builder_thumbs/102_34209.jpg"}],"203":[{"iid":62182,"L":70.8,"a":-11.1,"b":-1.6,"src":"zone_builder_thumbs/203_62182.jpg"},{"iid":19230,"L":72.6,"a":-14.5,"b":4.5,"src":"zone_builder_thumbs/203_19230.jpg"},{"iid":56865,"L":70.4,"a":-11.1,"b":-1.6,"src":"zone_builder_thumbs/203_56865.jpg"}],"204":[{"iid":56550,"L":73.0,"a":-8.1,"b":2.2,"src":"zone_builder_thumbs/204_56550.jpg"},{"iid":23088,"L":72.9,"a":-7.5,"b":-2.7,"src":"zone_builder_thumbs/204_23088.jpg"},{"iid":45555,"L":77.3,"a":-9.0,"b":-0.0,"src":"zone_builder_thumbs/204_45555.jpg"},{"iid":4406,"L":75.3,"a":-5.2,"b":0.3,"src":"zone_builder_thumbs/204_4406.jpg"},{"iid":15607,"L":75.8,"a":-8.3,"b":3.4,"src":"zone_builder_thumbs/204_15607.jpg"},{"iid":49890,"L":71.6,"a":-9.0,"b":0.6,"src":"zone_builder_thumbs/204_49890.jpg"},{"iid":61947,"L":71.6,"a":-7.2,"b":-1.0,"src":"zone_builder_thumbs/204_61947.jpg"},{"iid":72471,"L":72.6,"a":-10.0,"b":3.1,"src":"zone_builder_thumbs/204_72471.jpg"},{"iid":56517,"L":71.7,"a":-7.2,"b":-1.0,"src":"zone_builder_thumbs/204_56517.jpg"},{"iid":62326,"L":71.6,"a":-9.0,"b":0.6,"src":"zone_builder_thumbs/204_62326.jpg"}],"192":[{"iid":62063,"L":76.5,"a":-5.0,"b":-5.6,"src":"zone_builder_thumbs/192_62063.jpg"},{"iid":78249,"L":77.0,"a":-8.7,"b":-9.7,"src":"zone_builder_thumbs/192_78249.jpg"},{"iid":79059,"L":73.1,"a":-5.4,"b":-9.6,"src":"zone_builder_thumbs/192_79059.jpg"},{"iid":14946,"L":72.4,"a":-3.8,"b":-4.3,"src":"zone_builder_thumbs/192_14946.jpg"},{"iid":27336,"L":75.0,"a":-6.6,"b":-1.9,"src":"zone_builder_thumbs/192_27336.jpg"},{"iid":38840,"L":74.0,"a":-8.0,"b":-6.6,"src":"zone_builder_thumbs/192_38840.jpg"},{"iid":4342,"L":79.1,"a":-7.8,"b":-5.6,"src":"zone_builder_thumbs/192_4342.jpg"},{"iid":6127,"L":72.9,"a":-3.6,"b":-7.2,"src":"zone_builder_thumbs/192_6127.jpg"},{"iid":4364,"L":79.8,"a":-5.5,"b":-4.3,"src":"zone_builder_thumbs/192_4364.jpg"},{"iid":73484,"L":77.5,"a":-6.0,"b":-10.0,"src":"zone_builder_thumbs/192_73484.jpg"}],"193":[{"iid":27335,"L":79.8,"a":-12.0,"b":-6.8,"src":"zone_builder_thumbs/193_27335.jpg"},{"iid":62499,"L":79.4,"a":-11.6,"b":-6.7,"src":"zone_builder_thumbs/193_62499.jpg"}],"179":[{"iid":40744,"L":81.1,"a":-2.1,"b":-11.8,"src":"zone_builder_thumbs/179_40744.jpg"},{"iid":46110,"L":76.4,"a":-1.0,"b":-10.6,"src":"zone_builder_thumbs/179_46110.jpg"},{"iid":45144,"L":79.0,"a":-2.0,"b":-14.9,"src":"zone_builder_thumbs/179_45144.jpg"},{"iid":34878,"L":78.7,"a":-1.2,"b":-8.4,"src":"zone_builder_thumbs/179_34878.jpg"},{"iid":63292,"L":78.3,"a":-2.0,"b":-11.7,"src":"zone_builder_thumbs/179_63292.jpg"},{"iid":62201,"L":79.9,"a":-1.5,"b":-9.7,"src":"zone_builder_thumbs/179_62201.jpg"},{"iid":39809,"L":81.5,"a":-2.2,"b":-13.1,"src":"zone_builder_thumbs/179_39809.jpg"},{"iid":45961,"L":78.0,"a":-1.0,"b":-11.1,"src":"zone_builder_thumbs/179_45961.jpg"},{"iid":40764,"L":81.5,"a":-0.9,"b":-12.0,"src":"zone_builder_thumbs/179_40764.jpg"},{"iid":15336,"L":77.6,"a":-2.1,"b":-11.6,"src":"zone_builder_thumbs/179_15336.jpg"}],"180":[{"iid":63170,"L":73.9,"a":0.8,"b":-8.7,"src":"zone_builder_thumbs/180_63170.jpg"},{"iid":15539,"L":77.9,"a":1.3,"b":-5.8,"src":"zone_builder_thumbs/180_15539.jpg"},{"iid":18890,"L":71.6,"a":-1.3,"b":-10.9,"src":"zone_builder_thumbs/180_18890.jpg"},{"iid":12080,"L":72.7,"a":0.1,"b":-5.6,"src":"zone_builder_thumbs/180_12080.jpg"},{"iid":45097,"L":74.6,"a":-2.1,"b":-8.9,"src":"zone_builder_thumbs/180_45097.jpg"},{"iid":62032,"L":75.8,"a":2.0,"b":-7.0,"src":"zone_builder_thumbs/180_62032.jpg"},{"iid":15370,"L":74.2,"a":-2.1,"b":-8.8,"src":"zone_builder_thumbs/180_15370.jpg"},{"iid":56466,"L":76.0,"a":2.0,"b":-6.8,"src":"zone_builder_thumbs/180_56466.jpg"}],"178":[{"iid":15373,"L":79.2,"a":2.0,"b":-7.6,"src":"zone_builder_thumbs/178_15373.jpg"},{"iid":62645,"L":74.3,"a":3.1,"b":-7.0,"src":"zone_builder_thumbs/178_62645.jpg"},{"iid":61393,"L":78.8,"a":3.1,"b":-3.0,"src":"zone_builder_thumbs/178_61393.jpg"},{"iid":15610,"L":83.4,"a":2.4,"b":-7.7,"src":"zone_builder_thumbs/178_15610.jpg"},{"iid":61429,"L":80.3,"a":2.7,"b":-10.6,"src":"zone_builder_thumbs/178_61429.jpg"},{"iid":34479,"L":77.0,"a":2.9,"b":-5.8,"src":"zone_builder_thumbs/178_34479.jpg"},{"iid":15429,"L":77.2,"a":3.8,"b":-8.5,"src":"zone_builder_thumbs/178_15429.jpg"},{"iid":56582,"L":75.9,"a":4.7,"b":-7.0,"src":"zone_builder_thumbs/178_56582.jpg"},{"iid":15642,"L":81.2,"a":2.0,"b":-7.9,"src":"zone_builder_thumbs/178_15642.jpg"},{"iid":15651,"L":79.7,"a":1.3,"b":-9.3,"src":"zone_builder_thumbs/178_15651.jpg"}],"184":[{"iid":4534,"L":85.7,"a":2.0,"b":-5.9,"src":"zone_builder_thumbs/184_4534.jpg"},{"iid":4150,"L":88.7,"a":2.0,"b":-5.7,"src":"zone_builder_thumbs/184_4150.jpg"},{"iid":15645,"L":85.6,"a":0.5,"b":-8.4,"src":"zone_builder_thumbs/184_15645.jpg"},{"iid":15551,"L":83.5,"a":1.0,"b":-6.8,"src":"zone_builder_thumbs/184_15551.jpg"},{"iid":15546,"L":83.5,"a":2.4,"b":-4.8,"src":"zone_builder_thumbs/184_15546.jpg"},{"iid":15356,"L":84.5,"a":0.6,"b":-7.1,"src":"zone_builder_thumbs/184_15356.jpg"},{"iid":15573,"L":85.2,"a":1.5,"b":-8.4,"src":"zone_builder_thumbs/184_15573.jpg"},{"iid":73320,"L":83.6,"a":2.3,"b":-5.2,"src":"zone_builder_thumbs/184_73320.jpg"},{"iid":34525,"L":85.8,"a":2.0,"b":-5.9,"src":"zone_builder_thumbs/184_34525.jpg"},{"iid":34515,"L":83.7,"a":2.4,"b":-4.8,"src":"zone_builder_thumbs/184_34515.jpg"}],"181":[{"iid":61295,"L":84.1,"a":0.9,"b":-2.2,"src":"zone_builder_thumbs/181_61295.jpg"},{"iid":4139,"L":87.1,"a":0.1,"b":0.9,"src":"zone_builder_thumbs/181_4139.jpg"},{"iid":4396,"L":81.4,"a":0.5,"b":0.5,"src":"zone_builder_thumbs/181_4396.jpg"},{"iid":61774,"L":86.9,"a":0.9,"b":-2.2,"src":"zone_builder_thumbs/181_61774.jpg"},{"iid":34513,"L":81.6,"a":1.0,"b":-3.3,"src":"zone_builder_thumbs/181_34513.jpg"},{"iid":46036,"L":85.1,"a":2.7,"b":-1.1,"src":"zone_builder_thumbs/181_46036.jpg"},{"iid":8251,"L":85.3,"a":-0.8,"b":0.2,"src":"zone_builder_thumbs/181_8251.jpg"},{"iid":12051,"L":83.4,"a":1.0,"b":0.2,"src":"zone_builder_thumbs/181_12051.jpg"},{"iid":61360,"L":84.6,"a":1.6,"b":-4.0,"src":"zone_builder_thumbs/181_61360.jpg"},{"iid":73506,"L":82.0,"a":1.0,"b":-1.5,"src":"zone_builder_thumbs/181_73506.jpg"}],"183":[{"iid":15424,"L":91.3,"a":0.4,"b":-0.1,"src":"zone_builder_thumbs/183_15424.jpg"},{"iid":4514,"L":86.7,"a":1.1,"b":2.2,"src":"zone_builder_thumbs/183_4514.jpg"},{"iid":27132,"L":96.0,"a":0.3,"b":1.3,"src":"zone_builder_thumbs/183_27132.jpg"},{"iid":39240,"L":93.0,"a":4.0,"b":1.0,"src":"zone_builder_thumbs/183_39240.jpg"},{"iid":78220,"L":89.4,"a":3.8,"b":2.8,"src":"zone_builder_thumbs/183_78220.jpg"},{"iid":26405,"L":88.4,"a":1.0,"b":-1.7,"src":"zone_builder_thumbs/183_26405.jpg"},{"iid":34980,"L":94.1,"a":0.7,"b":-1.3,"src":"zone_builder_thumbs/183_34980.jpg"},{"iid":63270,"L":91.9,"a":2.5,"b":3.2,"src":"zone_builder_thumbs/183_63270.jpg"},{"iid":35008,"L":89.0,"a":1.0,"b":1.0,"src":"zone_builder_thumbs/183_35008.jpg"},{"iid":6096,"L":86.6,"a":0.4,"b":-0.1,"src":"zone_builder_thumbs/183_6096.jpg"}],"185":[{"iid":45810,"L":92.4,"a":1.4,"b":-2.6,"src":"zone_builder_thumbs/185_45810.jpg"},{"iid":39936,"L":94.2,"a":0.8,"b":-6.4,"src":"zone_builder_thumbs/185_39936.jpg"},{"iid":61729,"L":89.7,"a":4.5,"b":-3.5,"src":"zone_builder_thumbs/185_61729.jpg"},{"iid":39784,"L":89.7,"a":2.2,"b":-1.7,"src":"zone_builder_thumbs/185_39784.jpg"},{"iid":23318,"L":95.2,"a":1.4,"b":-2.1,"src":"zone_builder_thumbs/185_23318.jpg"},{"iid":39858,"L":91.8,"a":0.5,"b":-6.4,"src":"zone_builder_thumbs/185_39858.jpg"},{"iid":4025,"L":93.0,"a":1.3,"b":-4.9,"src":"zone_builder_thumbs/185_4025.jpg"},{"iid":62380,"L":89.3,"a":2.0,"b":-3.1,"src":"zone_builder_thumbs/185_62380.jpg"},{"iid":45607,"L":94.0,"a":1.0,"b":-2.0,"src":"zone_builder_thumbs/185_45607.jpg"},{"iid":11473,"L":93.6,"a":1.2,"b":-2.8,"src":"zone_builder_thumbs/185_11473.jpg"}],"187":[{"iid":27423,"L":93.8,"a":-0.2,"b":-2.4,"src":"zone_builder_thumbs/187_27423.jpg"},{"iid":6208,"L":93.0,"a":-3.8,"b":-5.0,"src":"zone_builder_thumbs/187_6208.jpg"},{"iid":39899,"L":95.2,"a":-0.3,"b":-5.2,"src":"zone_builder_thumbs/187_39899.jpg"},{"iid":15715,"L":91.9,"a":-0.6,"b":-3.6,"src":"zone_builder_thumbs/187_15715.jpg"},{"iid":72681,"L":95.0,"a":-2.0,"b":-5.0,"src":"zone_builder_thumbs/187_72681.jpg"},{"iid":39097,"L":95.0,"a":-1.1,"b":-3.8,"src":"zone_builder_thumbs/187_39097.jpg"},{"iid":34598,"L":93.1,"a":0.1,"b":-3.7,"src":"zone_builder_thumbs/187_34598.jpg"},{"iid":62677,"L":92.9,"a":0.0,"b":-2.7,"src":"zone_builder_thumbs/187_62677.jpg"},{"iid":62466,"L":93.2,"a":0.0,"b":-2.0,"src":"zone_builder_thumbs/187_62466.jpg"},{"iid":4168,"L":93.9,"a":0.0,"b":-1.9,"src":"zone_builder_thumbs/187_4168.jpg"}],"188":[{"iid":72116,"L":84.3,"a":-1.7,"b":-5.3,"src":"zone_builder_thumbs/188_72116.jpg"},{"iid":84000,"L":83.5,"a":-4.9,"b":-9.5,"src":"zone_builder_thumbs/188_84000.jpg"},{"iid":4318,"L":80.1,"a":-2.4,"b":-2.8,"src":"zone_builder_thumbs/188_4318.jpg"},{"iid":62662,"L":87.0,"a":-4.9,"b":-3.1,"src":"zone_builder_thumbs/188_62662.jpg"},{"iid":73085,"L":80.4,"a":-3.1,"b":-6.9,"src":"zone_builder_thumbs/188_73085.jpg"},{"iid":6132,"L":87.2,"a":-3.4,"b":-7.2,"src":"zone_builder_thumbs/188_6132.jpg"},{"iid":8083,"L":84.8,"a":-5.1,"b":-5.6,"src":"zone_builder_thumbs/188_8083.jpg"},{"iid":4310,"L":85.6,"a":-2.4,"b":-1.7,"src":"zone_builder_thumbs/188_4310.jpg"},{"iid":4101,"L":82.5,"a":-4.3,"b":-4.4,"src":"zone_builder_thumbs/188_4101.jpg"},{"iid":4208,"L":82.9,"a":-4.1,"b":-6.8,"src":"zone_builder_thumbs/188_4208.jpg"}],"186":[{"iid":67779,"L":83.4,"a":-4.2,"b":3.0,"src":"zone_builder_thumbs/186_67779.jpg"},{"iid":34342,"L":91.0,"a":-3.0,"b":0.3,"src":"zone_builder_thumbs/186_34342.jpg"},{"iid":51051,"L":80.2,"a":-4.9,"b":-1.8,"src":"zone_builder_thumbs/186_51051.jpg"},{"iid":31154,"L":79.4,"a":-4.2,"b":2.5,"src":"zone_builder_thumbs/186_31154.jpg"},{"iid":61866,"L":89.2,"a":-3.1,"b":2.9,"src":"zone_builder_thumbs/186_61866.jpg"},{"iid":84146,"L":82.7,"a":-6.0,"b":-2.4,"src":"zone_builder_thumbs/186_84146.jpg"},{"iid":62680,"L":79.8,"a":-4.6,"b":-1.1,"src":"zone_builder_thumbs/186_62680.jpg"},{"iid":62423,"L":90.8,"a":-2.9,"b":0.3,"src":"zone_builder_thumbs/186_62423.jpg"},{"iid":50470,"L":89.1,"a":-3.0,"b":2.9,"src":"zone_builder_thumbs/186_50470.jpg"},{"iid":26469,"L":90.8,"a":-2.9,"b":0.3,"src":"zone_builder_thumbs/186_26469.jpg"}],"194":[{"iid":15608,"L":85.7,"a":-5.4,"b":-1.2,"src":"zone_builder_thumbs/194_15608.jpg"},{"iid":18961,"L":84.4,"a":-7.6,"b":-6.4,"src":"zone_builder_thumbs/194_18961.jpg"},{"iid":83664,"L":88.0,"a":-5.8,"b":-5.9,"src":"zone_builder_thumbs/194_83664.jpg"},{"iid":27217,"L":87.8,"a":-5.9,"b":-0.0,"src":"zone_builder_thumbs/194_27217.jpg"},{"iid":15667,"L":86.0,"a":-6.2,"b":-5.1,"src":"zone_builder_thumbs/194_15667.jpg"},{"iid":39948,"L":86.1,"a":-8.6,"b":-5.7,"src":"zone_builder_thumbs/194_39948.jpg"},{"iid":27059,"L":84.5,"a":-6.3,"b":-0.7,"src":"zone_builder_thumbs/194_27059.jpg"},{"iid":84716,"L":84.1,"a":-7.3,"b":-5.2,"src":"zone_builder_thumbs/194_84716.jpg"},{"iid":23191,"L":85.6,"a":-5.1,"b":-0.2,"src":"zone_builder_thumbs/194_23191.jpg"},{"iid":34991,"L":85.3,"a":-5.5,"b":-0.5,"src":"zone_builder_thumbs/194_34991.jpg"}],"198":[{"iid":4511,"L":83.3,"a":0.9,"b":9.7,"src":"zone_builder_thumbs/198_4511.jpg"},{"iid":39761,"L":77.4,"a":-0.0,"b":7.4,"src":"zone_builder_thumbs/198_39761.jpg"},{"iid":22891,"L":79.9,"a":3.1,"b":13.1,"src":"zone_builder_thumbs/198_22891.jpg"},{"iid":45560,"L":84.3,"a":3.2,"b":13.0,"src":"zone_builder_thumbs/198_45560.jpg"},{"iid":62183,"L":80.1,"a":2.3,"b":7.8,"src":"zone_builder_thumbs/198_62183.jpg"},{"iid":15346,"L":86.7,"a":0.5,"b":9.4,"src":"zone_builder_thumbs/198_15346.jpg"},{"iid":4363,"L":83.4,"a":0.5,"b":6.6,"src":"zone_builder_thumbs/198_4363.jpg"},{"iid":4004,"L":81.1,"a":-0.3,"b":11.6,"src":"zone_builder_thumbs/198_4004.jpg"},{"iid":50557,"L":79.3,"a":1.6,"b":10.7,"src":"zone_builder_thumbs/198_50557.jpg"},{"iid":11355,"L":81.7,"a":2.7,"b":11.1,"src":"zone_builder_thumbs/198_11355.jpg"}],"200":[{"iid":26847,"L":87.1,"a":2.0,"b":8.5,"src":"zone_builder_thumbs/200_26847.jpg"},{"iid":4219,"L":81.7,"a":1.2,"b":5.3,"src":"zone_builder_thumbs/200_4219.jpg"},{"iid":15657,"L":91.5,"a":1.4,"b":8.2,"src":"zone_builder_thumbs/200_15657.jpg"},{"iid":39805,"L":83.1,"a":2.1,"b":8.8,"src":"zone_builder_thumbs/200_39805.jpg"},{"iid":50667,"L":85.1,"a":0.6,"b":5.3,"src":"zone_builder_thumbs/200_50667.jpg"},{"iid":45237,"L":87.6,"a":1.2,"b":11.8,"src":"zone_builder_thumbs/200_45237.jpg"},{"iid":4424,"L":89.9,"a":2.9,"b":10.6,"src":"zone_builder_thumbs/200_4424.jpg"},{"iid":34454,"L":88.8,"a":0.3,"b":8.9,"src":"zone_builder_thumbs/200_34454.jpg"},{"iid":61389,"L":84.9,"a":3.7,"b":8.9,"src":"zone_builder_thumbs/200_61389.jpg"},{"iid":62427,"L":84.9,"a":1.1,"b":7.5,"src":"zone_builder_thumbs/200_62427.jpg"}],"199":[{"iid":62124,"L":89.4,"a":0.0,"b":4.7,"src":"zone_builder_thumbs/199_62124.jpg"},{"iid":83720,"L":87.0,"a":-2.2,"b":8.9,"src":"zone_builder_thumbs/199_83720.jpg"},{"iid":57398,"L":85.1,"a":-0.9,"b":3.7,"src":"zone_builder_thumbs/199_57398.jpg"},{"iid":4202,"L":89.4,"a":-0.9,"b":1.2,"src":"zone_builder_thumbs/199_4202.jpg"},{"iid":4492,"L":92.7,"a":-1.3,"b":5.5,"src":"zone_builder_thumbs/199_4492.jpg"},{"iid":38873,"L":86.9,"a":1.5,"b":5.3,"src":"zone_builder_thumbs/199_38873.jpg"},{"iid":56516,"L":88.2,"a":0.2,"b":7.3,"src":"zone_builder_thumbs/199_56516.jpg"},{"iid":6179,"L":92.1,"a":1.3,"b":5.6,"src":"zone_builder_thumbs/199_6179.jpg"},{"iid":62732,"L":91.2,"a":-0.1,"b":2.7,"src":"zone_builder_thumbs/199_62732.jpg"},{"iid":62803,"L":87.5,"a":-0.9,"b":3.0,"src":"zone_builder_thumbs/199_62803.jpg"}],"182":[{"iid":39615,"L":79.6,"a":0.4,"b":0.5,"src":"zone_builder_thumbs/182_39615.jpg"},{"iid":4321,"L":81.4,"a":0.1,"b":3.5,"src":"zone_builder_thumbs/182_4321.jpg"},{"iid":63101,"L":78.0,"a":3.5,"b":1.1,"src":"zone_builder_thumbs/182_63101.jpg"},{"iid":63017,"L":81.4,"a":3.4,"b":0.3,"src":"zone_builder_thumbs/182_63017.jpg"},{"iid":84783,"L":78.2,"a":-0.4,"b":-2.2,"src":"zone_builder_thumbs/182_84783.jpg"},{"iid":4171,"L":79.3,"a":0.5,"b":2.9,"src":"zone_builder_thumbs/182_4171.jpg"},{"iid":40176,"L":81.0,"a":0.0,"b":-1.0,"src":"zone_builder_thumbs/182_40176.jpg"},{"iid":50273,"L":77.6,"a":0.9,"b":-1.0,"src":"zone_builder_thumbs/182_50273.jpg"},{"iid":67959,"L":80.9,"a":1.0,"b":1.5,"src":"zone_builder_thumbs/182_67959.jpg"},{"iid":11484,"L":80.1,"a":1.5,"b":-0.7,"src":"zone_builder_thumbs/182_11484.jpg"}],"191":[{"iid":61969,"L":74.7,"a":1.3,"b":1.0,"src":"zone_builder_thumbs/191_61969.jpg"},{"iid":62261,"L":69.2,"a":1.8,"b":1.4,"src":"zone_builder_thumbs/191_62261.jpg"},{"iid":4093,"L":77.8,"a":0.1,"b":2.2,"src":"zone_builder_thumbs/191_4093.jpg"},{"iid":4480,"L":75.9,"a":1.5,"b":4.0,"src":"zone_builder_thumbs/191_4480.jpg"},{"iid":62341,"L":77.0,"a":0.4,"b":-0.5,"src":"zone_builder_thumbs/191_62341.jpg"},{"iid":15618,"L":73.3,"a":-0.1,"b":-0.6,"src":"zone_builder_thumbs/191_15618.jpg"},{"iid":4259,"L":70.3,"a":3.6,"b":2.4,"src":"zone_builder_thumbs/191_4259.jpg"},{"iid":34835,"L":70.9,"a":1.1,"b":1.0,"src":"zone_builder_thumbs/191_34835.jpg"},{"iid":39777,"L":76.1,"a":-0.6,"b":0.8,"src":"zone_builder_thumbs/191_39777.jpg"},{"iid":34676,"L":76.4,"a":1.0,"b":1.6,"src":"zone_builder_thumbs/191_34676.jpg"}],"190":[{"iid":23386,"L":70.7,"a":-0.5,"b":1.6,"src":"zone_builder_thumbs/190_23386.jpg"},{"iid":14873,"L":69.4,"a":0.9,"b":-0.9,"src":"zone_builder_thumbs/190_14873.jpg"},{"iid":8537,"L":71.0,"a":-2.0,"b":-0.7,"src":"zone_builder_thumbs/190_8537.jpg"},{"iid":35182,"L":68.5,"a":0.3,"b":1.4,"src":"zone_builder_thumbs/190_35182.jpg"},{"iid":61704,"L":72.2,"a":0.0,"b":3.0,"src":"zone_builder_thumbs/190_61704.jpg"},{"iid":4050,"L":70.2,"a":-0.3,"b":0.2,"src":"zone_builder_thumbs/190_4050.jpg"},{"iid":4436,"L":70.7,"a":-0.8,"b":2.8,"src":"zone_builder_thumbs/190_4436.jpg"},{"iid":78712,"L":69.8,"a":-0.9,"b":1.8,"src":"zone_builder_thumbs/190_78712.jpg"},{"iid":34348,"L":70.3,"a":0.2,"b":2.0,"src":"zone_builder_thumbs/190_34348.jpg"},{"iid":4069,"L":70.6,"a":0.0,"b":2.6,"src":"zone_builder_thumbs/190_4069.jpg"}],"166":[{"iid":4282,"L":63.2,"a":0.2,"b":-0.5,"src":"zone_builder_thumbs/166_4282.jpg"},{"iid":34210,"L":65.3,"a":0.8,"b":2.7,"src":"zone_builder_thumbs/166_34210.jpg"},{"iid":78284,"L":66.6,"a":0.1,"b":-0.4,"src":"zone_builder_thumbs/166_78284.jpg"},{"iid":4376,"L":64.6,"a":-1.9,"b":-1.5,"src":"zone_builder_thumbs/166_4376.jpg"},{"iid":78711,"L":62.6,"a":0.9,"b":2.3,"src":"zone_builder_thumbs/166_78711.jpg"},{"iid":4251,"L":61.5,"a":0.8,"b":0.1,"src":"zone_builder_thumbs/166_4251.jpg"},{"iid":63423,"L":65.5,"a":0.5,"b":-1.3,"src":"zone_builder_thumbs/166_63423.jpg"},{"iid":19598,"L":61.4,"a":0.2,"b":1.2,"src":"zone_builder_thumbs/166_19598.jpg"},{"iid":46367,"L":65.5,"a":0.5,"b":-1.1,"src":"zone_builder_thumbs/166_46367.jpg"},{"iid":27362,"L":65.3,"a":0.8,"b":2.6,"src":"zone_builder_thumbs/166_27362.jpg"}],"106":[{"iid":73555,"L":54.0,"a":-12.9,"b":-15.5,"src":"zone_builder_thumbs/106_73555.jpg"}],"101":[{"iid":72123,"L":63.0,"a":-14.2,"b":-12.3,"src":"zone_builder_thumbs/101_72123.jpg"},{"iid":84466,"L":64.0,"a":-18.5,"b":-7.6,"src":"zone_builder_thumbs/101_84466.jpg"},{"iid":73028,"L":59.6,"a":-13.8,"b":-11.7,"src":"zone_builder_thumbs/101_73028.jpg"},{"iid":83502,"L":65.4,"a":-13.9,"b":-13.2,"src":"zone_builder_thumbs/101_83502.jpg"},{"iid":79125,"L":63.7,"a":-14.9,"b":-14.7,"src":"zone_builder_thumbs/101_79125.jpg"},{"iid":77717,"L":65.3,"a":-13.8,"b":-12.7,"src":"zone_builder_thumbs/101_77717.jpg"},{"iid":79123,"L":64.2,"a":-18.3,"b":-8.1,"src":"zone_builder_thumbs/101_79123.jpg"}],"97":[{"iid":39928,"L":73.7,"a":-4.7,"b":-26.1,"src":"zone_builder_thumbs/97_39928.jpg"},{"iid":4382,"L":72.2,"a":2.2,"b":-38.2,"src":"zone_builder_thumbs/97_4382.jpg"},{"iid":40884,"L":74.3,"a":-1.0,"b":-20.4,"src":"zone_builder_thumbs/97_40884.jpg"},{"iid":40141,"L":74.7,"a":-4.7,"b":-25.3,"src":"zone_builder_thumbs/97_40141.jpg"},{"iid":39950,"L":74.4,"a":-4.8,"b":-25.9,"src":"zone_builder_thumbs/97_39950.jpg"},{"iid":62693,"L":74.6,"a":-4.6,"b":-25.4,"src":"zone_builder_thumbs/97_62693.jpg"},{"iid":38921,"L":74.3,"a":-4.8,"b":-25.9,"src":"zone_builder_thumbs/97_38921.jpg"},{"iid":62420,"L":73.7,"a":-4.7,"b":-26.1,"src":"zone_builder_thumbs/97_62420.jpg"}],"100":[{"iid":4339,"L":69.6,"a":-8.1,"b":-16.8,"src":"zone_builder_thumbs/100_4339.jpg"},{"iid":46388,"L":68.8,"a":-3.8,"b":-14.0,"src":"zone_builder_thumbs/100_46388.jpg"}],"96":[{"iid":4274,"L":61.5,"a":2.8,"b":-29.3,"src":"zone_builder_thumbs/96_4274.jpg"},{"iid":78285,"L":60.2,"a":6.0,"b":-36.0,"src":"zone_builder_thumbs/96_78285.jpg"}],"99":[{"iid":4089,"L":65.8,"a":-0.8,"b":-17.6,"src":"zone_builder_thumbs/99_4089.jpg"},{"iid":39894,"L":64.3,"a":-3.1,"b":-14.7,"src":"zone_builder_thumbs/99_39894.jpg"},{"iid":4142,"L":66.6,"a":-1.0,"b":-20.4,"src":"zone_builder_thumbs/99_4142.jpg"},{"iid":8635,"L":66.5,"a":-3.0,"b":-16.2,"src":"zone_builder_thumbs/99_8635.jpg"},{"iid":4505,"L":64.6,"a":-3.0,"b":-17.6,"src":"zone_builder_thumbs/99_4505.jpg"},{"iid":4077,"L":64.8,"a":-0.7,"b":-19.6,"src":"zone_builder_thumbs/99_4077.jpg"},{"iid":4120,"L":66.0,"a":-1.8,"b":-18.8,"src":"zone_builder_thumbs/99_4120.jpg"},{"iid":39985,"L":64.5,"a":-2.4,"b":-14.5,"src":"zone_builder_thumbs/99_39985.jpg"},{"iid":46333,"L":66.3,"a":-3.0,"b":-16.7,"src":"zone_builder_thumbs/99_46333.jpg"},{"iid":62244,"L":64.4,"a":-3.1,"b":-14.7,"src":"zone_builder_thumbs/99_62244.jpg"}],"94":[{"iid":63407,"L":60.0,"a":-2.5,"b":-16.1,"src":"zone_builder_thumbs/94_63407.jpg"},{"iid":4713,"L":58.5,"a":-1.1,"b":-10.6,"src":"zone_builder_thumbs/94_4713.jpg"},{"iid":39247,"L":55.8,"a":-3.9,"b":-13.4,"src":"zone_builder_thumbs/94_39247.jpg"},{"iid":39846,"L":62.3,"a":-2.0,"b":-12.0,"src":"zone_builder_thumbs/94_39846.jpg"},{"iid":4175,"L":60.9,"a":-1.8,"b":-19.9,"src":"zone_builder_thumbs/94_4175.jpg"},{"iid":49791,"L":58.5,"a":-1.5,"b":-13.6,"src":"zone_builder_thumbs/94_49791.jpg"},{"iid":4153,"L":62.2,"a":-3.8,"b":-15.2,"src":"zone_builder_thumbs/94_4153.jpg"},{"iid":39681,"L":56.2,"a":-3.0,"b":-15.9,"src":"zone_builder_thumbs/94_39681.jpg"},{"iid":61733,"L":62.0,"a":-1.7,"b":-16.3,"src":"zone_builder_thumbs/94_61733.jpg"},{"iid":62086,"L":63.0,"a":-2.0,"b":-13.9,"src":"zone_builder_thumbs/94_62086.jpg"}],"98":[{"iid":15125,"L":65.2,"a":-5.3,"b":-28.8,"src":"zone_builder_thumbs/98_15125.jpg"},{"iid":4385,"L":61.9,"a":-6.7,"b":-31.9,"src":"zone_builder_thumbs/98_4385.jpg"},{"iid":15159,"L":67.1,"a":-3.4,"b":-28.9,"src":"zone_builder_thumbs/98_15159.jpg"}],"91":[{"iid":78843,"L":69.5,"a":6.4,"b":-26.7,"src":"zone_builder_thumbs/91_78843.jpg"},{"iid":73208,"L":67.9,"a":8.2,"b":-32.1,"src":"zone_builder_thumbs/91_73208.jpg"},{"iid":78283,"L":73.5,"a":6.7,"b":-29.2,"src":"zone_builder_thumbs/91_78283.jpg"},{"iid":79065,"L":68.0,"a":11.3,"b":-29.4,"src":"zone_builder_thumbs/91_79065.jpg"},{"iid":84034,"L":66.3,"a":5.6,"b":-27.0,"src":"zone_builder_thumbs/91_84034.jpg"},{"iid":78290,"L":72.1,"a":5.2,"b":-27.3,"src":"zone_builder_thumbs/91_78290.jpg"},{"iid":73312,"L":66.7,"a":8.2,"b":-30.4,"src":"zone_builder_thumbs/91_73312.jpg"},{"iid":73140,"L":71.3,"a":6.5,"b":-27.4,"src":"zone_builder_thumbs/91_73140.jpg"},{"iid":73537,"L":66.9,"a":5.4,"b":-28.0,"src":"zone_builder_thumbs/91_73537.jpg"},{"iid":73509,"L":66.7,"a":5.0,"b":-26.4,"src":"zone_builder_thumbs/91_73509.jpg"}],"95":[{"iid":45901,"L":60.5,"a":21.7,"b":-43.0,"src":"zone_builder_thumbs/95_45901.jpg"}],"93":[{"iid":35063,"L":63.0,"a":17.4,"b":-23.8,"src":"zone_builder_thumbs/93_35063.jpg"},{"iid":61895,"L":60.6,"a":21.0,"b":-32.1,"src":"zone_builder_thumbs/93_61895.jpg"},{"iid":27311,"L":64.3,"a":9.7,"b":-21.7,"src":"zone_builder_thumbs/93_27311.jpg"},{"iid":51014,"L":59.3,"a":15.6,"b":-24.2,"src":"zone_builder_thumbs/93_51014.jpg"},{"iid":4239,"L":65.0,"a":16.5,"b":-22.8,"src":"zone_builder_thumbs/93_4239.jpg"},{"iid":44989,"L":61.0,"a":21.2,"b":-32.0,"src":"zone_builder_thumbs/93_44989.jpg"},{"iid":22884,"L":63.3,"a":17.4,"b":-23.9,"src":"zone_builder_thumbs/93_22884.jpg"},{"iid":62524,"L":64.2,"a":9.7,"b":-21.7,"src":"zone_builder_thumbs/93_62524.jpg"},{"iid":34420,"L":64.3,"a":9.7,"b":-21.7,"src":"zone_builder_thumbs/93_34420.jpg"},{"iid":62556,"L":59.3,"a":15.6,"b":-24.2,"src":"zone_builder_thumbs/93_62556.jpg"}],"92":[{"iid":31087,"L":66.3,"a":15.3,"b":-20.5,"src":"zone_builder_thumbs/92_31087.jpg"},{"iid":27301,"L":70.0,"a":14.1,"b":-19.1,"src":"zone_builder_thumbs/92_27301.jpg"},{"iid":6609,"L":67.5,"a":16.1,"b":-17.0,"src":"zone_builder_thumbs/92_6609.jpg"},{"iid":34691,"L":65.7,"a":13.8,"b":-18.1,"src":"zone_builder_thumbs/92_34691.jpg"},{"iid":27302,"L":68.1,"a":14.8,"b":-20.3,"src":"zone_builder_thumbs/92_27302.jpg"},{"iid":27165,"L":69.2,"a":14.5,"b":-20.1,"src":"zone_builder_thumbs/92_27165.jpg"},{"iid":62424,"L":65.8,"a":15.2,"b":-20.5,"src":"zone_builder_thumbs/92_62424.jpg"},{"iid":27316,"L":65.7,"a":13.7,"b":-18.2,"src":"zone_builder_thumbs/92_27316.jpg"},{"iid":34289,"L":65.8,"a":15.2,"b":-20.5,"src":"zone_builder_thumbs/92_34289.jpg"},{"iid":27291,"L":65.8,"a":15.2,"b":-20.5,"src":"zone_builder_thumbs/92_27291.jpg"}],"138":[{"iid":72097,"L":68.3,"a":41.8,"b":-22.8,"src":"zone_builder_thumbs/138_72097.jpg"},{"iid":73483,"L":67.7,"a":39.5,"b":-12.5,"src":"zone_builder_thumbs/138_73483.jpg"},{"iid":15585,"L":71.9,"a":44.0,"b":-21.5,"src":"zone_builder_thumbs/138_15585.jpg"}],"139":[{"iid":4456,"L":63.4,"a":54.8,"b":-11.0,"src":"zone_builder_thumbs/139_4456.jpg"}],"140":[{"iid":34349,"L":56.1,"a":45.4,"b":-19.2,"src":"zone_builder_thumbs/140_34349.jpg"},{"iid":15538,"L":59.7,"a":43.4,"b":-22.7,"src":"zone_builder_thumbs/140_15538.jpg"},{"iid":39707,"L":56.6,"a":50.6,"b":-20.7,"src":"zone_builder_thumbs/140_39707.jpg"},{"iid":61223,"L":56.3,"a":45.3,"b":-18.8,"src":"zone_builder_thumbs/140_61223.jpg"},{"iid":15427,"L":56.6,"a":50.4,"b":-20.9,"src":"zone_builder_thumbs/140_15427.jpg"},{"iid":15431,"L":56.2,"a":45.4,"b":-18.9,"src":"zone_builder_thumbs/140_15431.jpg"},{"iid":62131,"L":56.5,"a":50.6,"b":-20.6,"src":"zone_builder_thumbs/140_62131.jpg"}],"64":[{"iid":15473,"L":50.5,"a":46.6,"b":-24.0,"src":"zone_builder_thumbs/64_15473.jpg"},{"iid":34846,"L":50.6,"a":34.8,"b":-18.0,"src":"zone_builder_thumbs/64_34846.jpg"},{"iid":15160,"L":52.9,"a":55.5,"b":-23.4,"src":"zone_builder_thumbs/64_15160.jpg"},{"iid":15587,"L":51.0,"a":42.2,"b":-18.0,"src":"zone_builder_thumbs/64_15587.jpg"},{"iid":19354,"L":50.9,"a":43.7,"b":-23.1,"src":"zone_builder_thumbs/64_19354.jpg"},{"iid":15596,"L":49.4,"a":47.9,"b":-21.8,"src":"zone_builder_thumbs/64_15596.jpg"},{"iid":62212,"L":50.6,"a":46.9,"b":-24.3,"src":"zone_builder_thumbs/64_62212.jpg"},{"iid":62730,"L":50.9,"a":35.0,"b":-18.2,"src":"zone_builder_thumbs/64_62730.jpg"},{"iid":34575,"L":50.5,"a":46.6,"b":-24.2,"src":"zone_builder_thumbs/64_34575.jpg"},{"iid":34808,"L":49.5,"a":47.9,"b":-21.7,"src":"zone_builder_thumbs/64_34808.jpg"}],"82":[{"iid":4620,"L":47.2,"a":36.3,"b":-29.5,"src":"zone_builder_thumbs/82_4620.jpg"},{"iid":8436,"L":47.8,"a":41.7,"b":-37.3,"src":"zone_builder_thumbs/82_8436.jpg"},{"iid":4402,"L":47.3,"a":35.6,"b":-29.4,"src":"zone_builder_thumbs/82_4402.jpg"}],"145":[{"iid":63543,"L":58.3,"a":10.6,"b":-9.2,"src":"zone_builder_thumbs/145_63543.jpg"},{"iid":4712,"L":59.7,"a":17.0,"b":-9.2,"src":"zone_builder_thumbs/145_4712.jpg"},{"iid":4330,"L":56.9,"a":9.3,"b":-5.2,"src":"zone_builder_thumbs/145_4330.jpg"},{"iid":4380,"L":57.1,"a":14.3,"b":-8.7,"src":"zone_builder_thumbs/145_4380.jpg"},{"iid":84547,"L":56.1,"a":8.4,"b":-9.4,"src":"zone_builder_thumbs/145_84547.jpg"},{"iid":61379,"L":58.1,"a":10.9,"b":-11.9,"src":"zone_builder_thumbs/145_61379.jpg"},{"iid":6400,"L":58.0,"a":10.2,"b":-7.7,"src":"zone_builder_thumbs/145_6400.jpg"},{"iid":45431,"L":58.3,"a":10.6,"b":-11.9,"src":"zone_builder_thumbs/145_45431.jpg"},{"iid":46426,"L":58.3,"a":10.6,"b":-9.2,"src":"zone_builder_thumbs/145_46426.jpg"},{"iid":26744,"L":56.1,"a":8.4,"b":-9.4,"src":"zone_builder_thumbs/145_26744.jpg"}],"144":[{"iid":8241,"L":51.3,"a":9.2,"b":-7.0,"src":"zone_builder_thumbs/144_8241.jpg"},{"iid":61955,"L":51.6,"a":12.8,"b":-1.9,"src":"zone_builder_thumbs/144_61955.jpg"},{"iid":4064,"L":51.8,"a":9.9,"b":-9.9,"src":"zone_builder_thumbs/144_4064.jpg"},{"iid":61271,"L":52.5,"a":13.5,"b":-2.8,"src":"zone_builder_thumbs/144_61271.jpg"}],"146":[{"iid":3986,"L":50.9,"a":15.8,"b":-17.6,"src":"zone_builder_thumbs/146_3986.jpg"},{"iid":35517,"L":51.0,"a":12.2,"b":-20.0,"src":"zone_builder_thumbs/146_35517.jpg"},{"iid":31668,"L":51.1,"a":12.2,"b":-20.0,"src":"zone_builder_thumbs/146_31668.jpg"}],"147":[{"iid":86127,"L":52.8,"a":5.9,"b":-15.2,"src":"zone_builder_thumbs/147_86127.jpg"},{"iid":67285,"L":57.0,"a":6.3,"b":-19.9,"src":"zone_builder_thumbs/147_67285.jpg"},{"iid":67472,"L":51.6,"a":6.4,"b":-11.5,"src":"zone_builder_thumbs/147_67472.jpg"},{"iid":73020,"L":54.2,"a":5.5,"b":-11.6,"src":"zone_builder_thumbs/147_73020.jpg"}],"141":[{"iid":61934,"L":63.8,"a":3.6,"b":-11.7,"src":"zone_builder_thumbs/141_61934.jpg"},{"iid":72576,"L":59.6,"a":2.7,"b":-6.4,"src":"zone_builder_thumbs/141_72576.jpg"},{"iid":78119,"L":57.7,"a":2.7,"b":-13.1,"src":"zone_builder_thumbs/141_78119.jpg"},{"iid":72610,"L":58.8,"a":3.0,"b":-11.4,"src":"zone_builder_thumbs/141_72610.jpg"},{"iid":19144,"L":63.8,"a":3.8,"b":-11.6,"src":"zone_builder_thumbs/141_19144.jpg"},{"iid":34674,"L":63.8,"a":3.8,"b":-11.6,"src":"zone_builder_thumbs/141_34674.jpg"}],"167":[{"iid":35189,"L":54.1,"a":0.3,"b":0.6,"src":"zone_builder_thumbs/167_35189.jpg"},{"iid":4165,"L":52.5,"a":0.0,"b":-0.9,"src":"zone_builder_thumbs/167_4165.jpg"},{"iid":39526,"L":55.3,"a":1.0,"b":-0.5,"src":"zone_builder_thumbs/167_39526.jpg"},{"iid":62039,"L":52.4,"a":1.2,"b":-0.3,"src":"zone_builder_thumbs/167_62039.jpg"},{"iid":8486,"L":54.4,"a":-0.1,"b":0.7,"src":"zone_builder_thumbs/167_8486.jpg"}],"105":[{"iid":51714,"L":49.4,"a":-0.6,"b":-0.9,"src":"zone_builder_thumbs/105_51714.jpg"},{"iid":12144,"L":47.1,"a":-1.0,"b":-6.9,"src":"zone_builder_thumbs/105_12144.jpg"},{"iid":63490,"L":49.4,"a":-0.6,"b":-0.9,"src":"zone_builder_thumbs/105_63490.jpg"}],"168":[{"iid":34522,"L":59.4,"a":0.7,"b":4.2,"src":"zone_builder_thumbs/168_34522.jpg"},{"iid":3893,"L":60.1,"a":-1.2,"b":0.4,"src":"zone_builder_thumbs/168_3893.jpg"},{"iid":46375,"L":58.8,"a":1.9,"b":0.3,"src":"zone_builder_thumbs/168_46375.jpg"},{"iid":46309,"L":58.6,"a":1.4,"b":6.0,"src":"zone_builder_thumbs/168_46309.jpg"},{"iid":3918,"L":58.4,"a":-0.6,"b":1.0,"src":"zone_builder_thumbs/168_3918.jpg"},{"iid":67274,"L":58.8,"a":2.2,"b":1.9,"src":"zone_builder_thumbs/168_67274.jpg"},{"iid":62242,"L":58.4,"a":1.5,"b":4.7,"src":"zone_builder_thumbs/168_62242.jpg"},{"iid":4195,"L":59.7,"a":1.0,"b":4.6,"src":"zone_builder_thumbs/168_4195.jpg"},{"iid":63244,"L":59.1,"a":1.9,"b":0.2,"src":"zone_builder_thumbs/168_63244.jpg"},{"iid":45585,"L":58.7,"a":1.5,"b":4.8,"src":"zone_builder_thumbs/168_45585.jpg"}],"171":[{"iid":62199,"L":62.1,"a":2.9,"b":8.1,"src":"zone_builder_thumbs/171_62199.jpg"},{"iid":62440,"L":63.4,"a":5.5,"b":7.5,"src":"zone_builder_thumbs/171_62440.jpg"},{"iid":63596,"L":60.9,"a":3.9,"b":8.7,"src":"zone_builder_thumbs/171_63596.jpg"},{"iid":51727,"L":61.1,"a":3.8,"b":8.4,"src":"zone_builder_thumbs/171_51727.jpg"},{"iid":51011,"L":63.6,"a":5.4,"b":7.5,"src":"zone_builder_thumbs/171_51011.jpg"},{"iid":50665,"L":62.1,"a":2.9,"b":8.1,"src":"zone_builder_thumbs/171_50665.jpg"}],"173":[{"iid":62059,"L":57.2,"a":4.9,"b":10.3,"src":"zone_builder_thumbs/173_62059.jpg"},{"iid":61967,"L":53.9,"a":3.5,"b":10.3,"src":"zone_builder_thumbs/173_61967.jpg"},{"iid":15709,"L":56.7,"a":6.2,"b":13.4,"src":"zone_builder_thumbs/173_15709.jpg"},{"iid":45002,"L":54.2,"a":3.6,"b":10.5,"src":"zone_builder_thumbs/173_45002.jpg"},{"iid":44557,"L":57.5,"a":4.9,"b":10.3,"src":"zone_builder_thumbs/173_44557.jpg"}],"170":[{"iid":73540,"L":58.3,"a":11.3,"b":10.7,"src":"zone_builder_thumbs/170_73540.jpg"},{"iid":15470,"L":58.3,"a":8.5,"b":15.0,"src":"zone_builder_thumbs/170_15470.jpg"},{"iid":84116,"L":56.4,"a":10.9,"b":9.2,"src":"zone_builder_thumbs/170_84116.jpg"},{"iid":73464,"L":58.2,"a":12.2,"b":8.8,"src":"zone_builder_thumbs/170_73464.jpg"},{"iid":73245,"L":59.7,"a":11.4,"b":9.7,"src":"zone_builder_thumbs/170_73245.jpg"},{"iid":73545,"L":57.3,"a":10.9,"b":10.2,"src":"zone_builder_thumbs/170_73545.jpg"}],"169":[{"iid":72110,"L":63.3,"a":11.5,"b":9.5,"src":"zone_builder_thumbs/169_72110.jpg"},{"iid":72734,"L":61.1,"a":13.8,"b":10.0,"src":"zone_builder_thumbs/169_72734.jpg"},{"iid":73222,"L":64.4,"a":9.5,"b":7.9,"src":"zone_builder_thumbs/169_73222.jpg"},{"iid":73372,"L":65.8,"a":11.4,"b":9.7,"src":"zone_builder_thumbs/169_73372.jpg"},{"iid":78834,"L":61.5,"a":10.1,"b":9.2,"src":"zone_builder_thumbs/169_78834.jpg"},{"iid":72599,"L":61.8,"a":12.7,"b":9.7,"src":"zone_builder_thumbs/169_72599.jpg"},{"iid":73277,"L":63.4,"a":10.4,"b":8.5,"src":"zone_builder_thumbs/169_73277.jpg"},{"iid":72736,"L":63.8,"a":9.1,"b":8.8,"src":"zone_builder_thumbs/169_72736.jpg"},{"iid":78947,"L":64.0,"a":11.7,"b":9.8,"src":"zone_builder_thumbs/169_78947.jpg"},{"iid":72623,"L":63.4,"a":11.7,"b":9.7,"src":"zone_builder_thumbs/169_72623.jpg"}],"172":[{"iid":50733,"L":65.9,"a":6.4,"b":2.0,"src":"zone_builder_thumbs/172_50733.jpg"},{"iid":73018,"L":70.1,"a":7.8,"b":6.1,"src":"zone_builder_thumbs/172_73018.jpg"},{"iid":62069,"L":65.7,"a":6.5,"b":1.8,"src":"zone_builder_thumbs/172_62069.jpg"}],"142":[{"iid":3976,"L":65.5,"a":10.3,"b":-4.1,"src":"zone_builder_thumbs/142_3976.jpg"},{"iid":63585,"L":61.6,"a":10.6,"b":-2.3,"src":"zone_builder_thumbs/142_63585.jpg"},{"iid":4425,"L":65.0,"a":11.0,"b":-6.6,"src":"zone_builder_thumbs/142_4425.jpg"},{"iid":4415,"L":66.5,"a":11.5,"b":-2.4,"src":"zone_builder_thumbs/142_4415.jpg"},{"iid":63066,"L":66.8,"a":8.7,"b":-3.6,"src":"zone_builder_thumbs/142_63066.jpg"},{"iid":11153,"L":63.8,"a":10.2,"b":-4.9,"src":"zone_builder_thumbs/142_11153.jpg"},{"iid":45856,"L":66.5,"a":8.7,"b":-3.6,"src":"zone_builder_thumbs/142_45856.jpg"},{"iid":40791,"L":61.6,"a":10.6,"b":-2.3,"src":"zone_builder_thumbs/142_40791.jpg"}],"143":[{"iid":4196,"L":66.1,"a":9.5,"b":-6.7,"src":"zone_builder_thumbs/143_4196.jpg"},{"iid":62932,"L":64.8,"a":5.0,"b":-5.0,"src":"zone_builder_thumbs/143_62932.jpg"},{"iid":4108,"L":61.4,"a":9.0,"b":-8.3,"src":"zone_builder_thumbs/143_4108.jpg"},{"iid":4334,"L":69.3,"a":7.4,"b":-8.3,"src":"zone_builder_thumbs/143_4334.jpg"},{"iid":14959,"L":67.8,"a":11.5,"b":-9.5,"src":"zone_builder_thumbs/143_14959.jpg"},{"iid":61886,"L":63.9,"a":8.6,"b":-10.1,"src":"zone_builder_thumbs/143_61886.jpg"},{"iid":51376,"L":63.4,"a":6.1,"b":-6.6,"src":"zone_builder_thumbs/143_51376.jpg"},{"iid":6253,"L":69.6,"a":10.1,"b":-8.8,"src":"zone_builder_thumbs/143_6253.jpg"},{"iid":4047,"L":61.7,"a":10.6,"b":-7.2,"src":"zone_builder_thumbs/143_4047.jpg"},{"iid":3990,"L":64.5,"a":7.3,"b":-5.7,"src":"zone_builder_thumbs/143_3990.jpg"}],"124":[{"iid":39449,"L":59.2,"a":24.5,"b":2.7,"src":"zone_builder_thumbs/124_39449.jpg"},{"iid":50906,"L":58.1,"a":15.2,"b":0.1,"src":"zone_builder_thumbs/124_50906.jpg"},{"iid":83943,"L":58.3,"a":15.4,"b":0.1,"src":"zone_builder_thumbs/124_83943.jpg"},{"iid":84493,"L":59.0,"a":24.6,"b":2.9,"src":"zone_builder_thumbs/124_84493.jpg"}],"128":[{"iid":31147,"L":78.2,"a":21.4,"b":19.2,"src":"zone_builder_thumbs/128_31147.jpg"},{"iid":50406,"L":77.6,"a":17.0,"b":16.0,"src":"zone_builder_thumbs/128_50406.jpg"},{"iid":34826,"L":77.9,"a":21.8,"b":19.2,"src":"zone_builder_thumbs/128_34826.jpg"}],"132":[{"iid":45567,"L":84.9,"a":14.7,"b":8.2,"src":"zone_builder_thumbs/132_45567.jpg"},{"iid":27123,"L":81.4,"a":14.2,"b":13.4,"src":"zone_builder_thumbs/132_27123.jpg"},{"iid":23881,"L":85.2,"a":18.7,"b":9.0,"src":"zone_builder_thumbs/132_23881.jpg"},{"iid":83937,"L":81.1,"a":15.4,"b":7.3,"src":"zone_builder_thumbs/132_83937.jpg"},{"iid":27319,"L":83.8,"a":11.1,"b":8.5,"src":"zone_builder_thumbs/132_27319.jpg"},{"iid":62000,"L":86.3,"a":16.3,"b":8.9,"src":"zone_builder_thumbs/132_62000.jpg"},{"iid":23378,"L":83.9,"a":12.3,"b":9.0,"src":"zone_builder_thumbs/132_23378.jpg"},{"iid":34198,"L":86.0,"a":16.0,"b":8.9,"src":"zone_builder_thumbs/132_34198.jpg"},{"iid":34283,"L":83.7,"a":12.0,"b":9.0,"src":"zone_builder_thumbs/132_34283.jpg"},{"iid":62531,"L":84.2,"a":11.1,"b":8.5,"src":"zone_builder_thumbs/132_62531.jpg"}],"133":[{"iid":61919,"L":81.8,"a":9.2,"b":3.8,"src":"zone_builder_thumbs/133_61919.jpg"},{"iid":4129,"L":87.5,"a":8.4,"b":6.4,"src":"zone_builder_thumbs/133_4129.jpg"},{"iid":4349,"L":83.1,"a":6.8,"b":-0.7,"src":"zone_builder_thumbs/133_4349.jpg"},{"iid":84081,"L":86.1,"a":6.0,"b":2.6,"src":"zone_builder_thumbs/133_84081.jpg"},{"iid":4141,"L":78.3,"a":7.6,"b":4.8,"src":"zone_builder_thumbs/133_4141.jpg"},{"iid":73276,"L":80.8,"a":6.5,"b":2.5,"src":"zone_builder_thumbs/133_73276.jpg"},{"iid":34356,"L":81.8,"a":8.6,"b":0.8,"src":"zone_builder_thumbs/133_34356.jpg"},{"iid":4377,"L":85.8,"a":9.2,"b":7.9,"src":"zone_builder_thumbs/133_4377.jpg"},{"iid":4164,"L":84.0,"a":9.2,"b":4.4,"src":"zone_builder_thumbs/133_4164.jpg"},{"iid":50693,"L":79.7,"a":8.1,"b":3.2,"src":"zone_builder_thumbs/133_50693.jpg"}],"134":[{"iid":62214,"L":76.1,"a":8.1,"b":3.2,"src":"zone_builder_thumbs/134_62214.jpg"},{"iid":61956,"L":79.7,"a":10.2,"b":1.0,"src":"zone_builder_thumbs/134_61956.jpg"},{"iid":11114,"L":75.3,"a":10.6,"b":2.7,"src":"zone_builder_thumbs/134_11114.jpg"},{"iid":39754,"L":75.9,"a":6.9,"b":1.7,"src":"zone_builder_thumbs/134_39754.jpg"},{"iid":44817,"L":79.3,"a":8.6,"b":0.7,"src":"zone_builder_thumbs/134_44817.jpg"},{"iid":50796,"L":75.7,"a":8.1,"b":3.2,"src":"zone_builder_thumbs/134_50796.jpg"},{"iid":15200,"L":79.5,"a":10.3,"b":1.0,"src":"zone_builder_thumbs/134_15200.jpg"},{"iid":22939,"L":79.4,"a":8.6,"b":0.7,"src":"zone_builder_thumbs/134_22939.jpg"}],"135":[{"iid":4212,"L":79.9,"a":10.2,"b":-2.6,"src":"zone_builder_thumbs/135_4212.jpg"},{"iid":4411,"L":74.5,"a":14.3,"b":-6.4,"src":"zone_builder_thumbs/135_4411.jpg"},{"iid":4082,"L":73.7,"a":8.5,"b":-3.1,"src":"zone_builder_thumbs/135_4082.jpg"},{"iid":6617,"L":73.5,"a":9.1,"b":-7.0,"src":"zone_builder_thumbs/135_6617.jpg"},{"iid":4286,"L":83.2,"a":11.0,"b":-3.2,"src":"zone_builder_thumbs/135_4286.jpg"},{"iid":4228,"L":82.3,"a":8.9,"b":-1.6,"src":"zone_builder_thumbs/135_4228.jpg"},{"iid":73501,"L":81.6,"a":11.9,"b":-1.9,"src":"zone_builder_thumbs/135_73501.jpg"},{"iid":11310,"L":73.4,"a":10.6,"b":-6.6,"src":"zone_builder_thumbs/135_11310.jpg"},{"iid":3984,"L":81.0,"a":11.3,"b":-2.6,"src":"zone_builder_thumbs/135_3984.jpg"},{"iid":34474,"L":83.2,"a":11.0,"b":-3.2,"src":"zone_builder_thumbs/135_34474.jpg"}],"137":[{"iid":39924,"L":83.5,"a":19.5,"b":-3.8,"src":"zone_builder_thumbs/137_39924.jpg"},{"iid":4114,"L":89.1,"a":17.9,"b":-2.9,"src":"zone_builder_thumbs/137_4114.jpg"},{"iid":73502,"L":80.4,"a":16.8,"b":-3.7,"src":"zone_builder_thumbs/137_73502.jpg"},{"iid":61496,"L":81.5,"a":20.7,"b":-3.9,"src":"zone_builder_thumbs/137_61496.jpg"},{"iid":62459,"L":82.4,"a":20.9,"b":-3.7,"src":"zone_builder_thumbs/137_62459.jpg"},{"iid":39926,"L":81.6,"a":20.8,"b":-4.0,"src":"zone_builder_thumbs/137_39926.jpg"},{"iid":39940,"L":82.3,"a":20.8,"b":-3.7,"src":"zone_builder_thumbs/137_39940.jpg"}],"136":[{"iid":4247,"L":78.2,"a":30.4,"b":-4.3,"src":"zone_builder_thumbs/136_4247.jpg"},{"iid":67205,"L":79.5,"a":29.1,"b":-1.8,"src":"zone_builder_thumbs/136_67205.jpg"},{"iid":6422,"L":79.6,"a":30.1,"b":-5.9,"src":"zone_builder_thumbs/136_6422.jpg"}],"125":[{"iid":4383,"L":72.6,"a":37.4,"b":0.5,"src":"zone_builder_thumbs/125_4383.jpg"},{"iid":63214,"L":66.6,"a":44.2,"b":1.1,"src":"zone_builder_thumbs/125_63214.jpg"},{"iid":11180,"L":69.1,"a":32.8,"b":-2.3,"src":"zone_builder_thumbs/125_11180.jpg"},{"iid":19517,"L":67.7,"a":39.6,"b":3.3,"src":"zone_builder_thumbs/125_19517.jpg"},{"iid":15714,"L":74.6,"a":40.6,"b":2.2,"src":"zone_builder_thumbs/125_15714.jpg"},{"iid":4297,"L":72.8,"a":40.1,"b":-1.4,"src":"zone_builder_thumbs/125_4297.jpg"},{"iid":11605,"L":72.2,"a":35.4,"b":0.4,"src":"zone_builder_thumbs/125_11605.jpg"},{"iid":26685,"L":73.2,"a":37.5,"b":0.3,"src":"zone_builder_thumbs/125_26685.jpg"},{"iid":51570,"L":66.8,"a":44.0,"b":1.0,"src":"zone_builder_thumbs/125_51570.jpg"},{"iid":61316,"L":73.1,"a":37.6,"b":0.3,"src":"zone_builder_thumbs/125_61316.jpg"}],"130":[{"iid":51198,"L":74.2,"a":30.6,"b":6.6,"src":"zone_builder_thumbs/130_51198.jpg"},{"iid":45543,"L":79.4,"a":29.0,"b":8.2,"src":"zone_builder_thumbs/130_45543.jpg"},{"iid":45634,"L":72.2,"a":27.9,"b":3.9,"src":"zone_builder_thumbs/130_45634.jpg"},{"iid":62461,"L":73.6,"a":32.7,"b":8.0,"src":"zone_builder_thumbs/130_62461.jpg"},{"iid":56877,"L":73.5,"a":32.9,"b":7.5,"src":"zone_builder_thumbs/130_56877.jpg"},{"iid":62703,"L":74.2,"a":30.6,"b":6.6,"src":"zone_builder_thumbs/130_62703.jpg"}],"129":[{"iid":50975,"L":74.6,"a":23.2,"b":9.5,"src":"zone_builder_thumbs/129_50975.jpg"},{"iid":15456,"L":78.2,"a":27.6,"b":15.0,"src":"zone_builder_thumbs/129_15456.jpg"},{"iid":15435,"L":78.8,"a":21.4,"b":13.3,"src":"zone_builder_thumbs/129_15435.jpg"},{"iid":15511,"L":71.9,"a":26.4,"b":13.6,"src":"zone_builder_thumbs/129_15511.jpg"},{"iid":62386,"L":75.7,"a":26.9,"b":10.4,"src":"zone_builder_thumbs/129_62386.jpg"},{"iid":62339,"L":75.5,"a":24.1,"b":7.5,"src":"zone_builder_thumbs/129_62339.jpg"},{"iid":19377,"L":78.0,"a":20.5,"b":11.2,"src":"zone_builder_thumbs/129_19377.jpg"},{"iid":72484,"L":76.3,"a":28.8,"b":11.7,"src":"zone_builder_thumbs/129_72484.jpg"},{"iid":38861,"L":75.3,"a":24.0,"b":7.4,"src":"zone_builder_thumbs/129_38861.jpg"},{"iid":56807,"L":75.7,"a":26.8,"b":10.3,"src":"zone_builder_thumbs/129_56807.jpg"}],"131":[{"iid":45281,"L":75.8,"a":20.4,"b":2.0,"src":"zone_builder_thumbs/131_45281.jpg"},{"iid":78291,"L":77.6,"a":21.1,"b":9.2,"src":"zone_builder_thumbs/131_78291.jpg"},{"iid":4613,"L":77.2,"a":25.2,"b":0.4,"src":"zone_builder_thumbs/131_4613.jpg"},{"iid":39812,"L":70.9,"a":21.6,"b":1.5,"src":"zone_builder_thumbs/131_39812.jpg"},{"iid":38917,"L":80.5,"a":21.3,"b":2.5,"src":"zone_builder_thumbs/131_38917.jpg"},{"iid":19397,"L":77.9,"a":16.6,"b":2.6,"src":"zone_builder_thumbs/131_19397.jpg"},{"iid":78945,"L":77.2,"a":18.2,"b":7.3,"src":"zone_builder_thumbs/131_78945.jpg"},{"iid":62535,"L":73.7,"a":18.9,"b":3.8,"src":"zone_builder_thumbs/131_62535.jpg"},{"iid":79062,"L":76.0,"a":20.8,"b":6.2,"src":"zone_builder_thumbs/131_79062.jpg"},{"iid":4065,"L":76.2,"a":22.7,"b":0.0,"src":"zone_builder_thumbs/131_4065.jpg"}],"123":[{"iid":40283,"L":68.8,"a":22.4,"b":2.9,"src":"zone_builder_thumbs/123_40283.jpg"},{"iid":4087,"L":65.5,"a":17.8,"b":-0.5,"src":"zone_builder_thumbs/123_4087.jpg"},{"iid":39696,"L":66.6,"a":24.2,"b":0.1,"src":"zone_builder_thumbs/123_39696.jpg"},{"iid":40181,"L":67.9,"a":19.2,"b":3.1,"src":"zone_builder_thumbs/123_40181.jpg"},{"iid":62215,"L":69.9,"a":24.7,"b":2.1,"src":"zone_builder_thumbs/123_62215.jpg"},{"iid":39760,"L":69.0,"a":22.0,"b":0.4,"src":"zone_builder_thumbs/123_39760.jpg"},{"iid":61779,"L":67.3,"a":20.8,"b":2.3,"src":"zone_builder_thumbs/123_61779.jpg"},{"iid":61478,"L":67.7,"a":23.5,"b":2.2,"src":"zone_builder_thumbs/123_61478.jpg"},{"iid":56854,"L":70.0,"a":23.0,"b":2.0,"src":"zone_builder_thumbs/123_56854.jpg"},{"iid":62052,"L":69.7,"a":21.9,"b":1.4,"src":"zone_builder_thumbs/123_62052.jpg"}],"122":[{"iid":56412,"L":63.1,"a":51.8,"b":30.7,"src":"zone_builder_thumbs/122_56412.jpg"},{"iid":35013,"L":61.2,"a":55.6,"b":39.2,"src":"zone_builder_thumbs/122_35013.jpg"},{"iid":34478,"L":58.8,"a":55.0,"b":33.9,"src":"zone_builder_thumbs/122_34478.jpg"},{"iid":61668,"L":62.4,"a":50.7,"b":27.3,"src":"zone_builder_thumbs/122_61668.jpg"},{"iid":30641,"L":64.8,"a":49.1,"b":31.0,"src":"zone_builder_thumbs/122_30641.jpg"},{"iid":26970,"L":64.8,"a":53.4,"b":32.6,"src":"zone_builder_thumbs/122_26970.jpg"},{"iid":62097,"L":64.4,"a":48.9,"b":30.9,"src":"zone_builder_thumbs/122_62097.jpg"},{"iid":56211,"L":62.5,"a":51.0,"b":27.6,"src":"zone_builder_thumbs/122_56211.jpg"},{"iid":26905,"L":59.1,"a":55.0,"b":33.8,"src":"zone_builder_thumbs/122_26905.jpg"},{"iid":61787,"L":63.0,"a":51.8,"b":30.5,"src":"zone_builder_thumbs/122_61787.jpg"}],"121":[{"iid":4435,"L":64.6,"a":51.5,"b":20.5,"src":"zone_builder_thumbs/121_4435.jpg"},{"iid":30986,"L":64.5,"a":44.5,"b":23.4,"src":"zone_builder_thumbs/121_30986.jpg"},{"iid":4484,"L":63.4,"a":56.8,"b":23.7,"src":"zone_builder_thumbs/121_4484.jpg"},{"iid":26305,"L":63.4,"a":46.9,"b":21.9,"src":"zone_builder_thumbs/121_26305.jpg"},{"iid":62239,"L":65.2,"a":50.1,"b":18.4,"src":"zone_builder_thumbs/121_62239.jpg"},{"iid":4397,"L":65.9,"a":51.2,"b":22.3,"src":"zone_builder_thumbs/121_4397.jpg"},{"iid":4285,"L":66.4,"a":51.7,"b":19.0,"src":"zone_builder_thumbs/121_4285.jpg"},{"iid":15641,"L":65.0,"a":50.1,"b":18.7,"src":"zone_builder_thumbs/121_15641.jpg"},{"iid":34457,"L":64.8,"a":44.6,"b":23.6,"src":"zone_builder_thumbs/121_34457.jpg"}],"126":[{"iid":78943,"L":65.2,"a":37.2,"b":10.7,"src":"zone_builder_thumbs/126_78943.jpg"},{"iid":45433,"L":64.2,"a":32.5,"b":4.8,"src":"zone_builder_thumbs/126_45433.jpg"},{"iid":74378,"L":61.9,"a":31.6,"b":14.0,"src":"zone_builder_thumbs/126_74378.jpg"},{"iid":73488,"L":63.2,"a":40.0,"b":14.6,"src":"zone_builder_thumbs/126_73488.jpg"},{"iid":78229,"L":67.0,"a":32.9,"b":8.5,"src":"zone_builder_thumbs/126_78229.jpg"},{"iid":73295,"L":67.0,"a":38.9,"b":13.9,"src":"zone_builder_thumbs/126_73295.jpg"},{"iid":73433,"L":62.7,"a":39.3,"b":10.4,"src":"zone_builder_thumbs/126_73433.jpg"},{"iid":72650,"L":67.3,"a":36.6,"b":12.6,"src":"zone_builder_thumbs/126_72650.jpg"},{"iid":72733,"L":66.2,"a":35.7,"b":9.0,"src":"zone_builder_thumbs/126_72733.jpg"},{"iid":4058,"L":62.3,"a":38.2,"b":14.2,"src":"zone_builder_thumbs/126_4058.jpg"}],"127":[{"iid":11354,"L":71.1,"a":41.4,"b":17.8,"src":"zone_builder_thumbs/127_11354.jpg"},{"iid":4727,"L":67.6,"a":51.2,"b":15.8,"src":"zone_builder_thumbs/127_4727.jpg"},{"iid":73539,"L":70.3,"a":37.6,"b":9.9,"src":"zone_builder_thumbs/127_73539.jpg"},{"iid":62190,"L":70.5,"a":35.7,"b":17.4,"src":"zone_builder_thumbs/127_62190.jpg"},{"iid":4080,"L":73.6,"a":35.6,"b":13.3,"src":"zone_builder_thumbs/127_4080.jpg"},{"iid":6414,"L":70.2,"a":44.4,"b":13.9,"src":"zone_builder_thumbs/127_6414.jpg"},{"iid":4361,"L":70.7,"a":41.7,"b":22.1,"src":"zone_builder_thumbs/127_4361.jpg"},{"iid":15697,"L":69.4,"a":47.6,"b":14.6,"src":"zone_builder_thumbs/127_15697.jpg"},{"iid":4482,"L":68.2,"a":41.5,"b":17.0,"src":"zone_builder_thumbs/127_4482.jpg"},{"iid":4096,"L":72.6,"a":36.8,"b":11.8,"src":"zone_builder_thumbs/127_4096.jpg"}],"119":[{"iid":27327,"L":57.6,"a":47.8,"b":15.1,"src":"zone_builder_thumbs/119_27327.jpg"},{"iid":35542,"L":56.1,"a":54.2,"b":9.9,"src":"zone_builder_thumbs/119_35542.jpg"},{"iid":73248,"L":57.7,"a":42.5,"b":13.7,"src":"zone_builder_thumbs/119_73248.jpg"},{"iid":73265,"L":57.4,"a":44.4,"b":12.6,"src":"zone_builder_thumbs/119_73265.jpg"}],"118":[{"iid":4317,"L":62.2,"a":55.3,"b":13.9,"src":"zone_builder_thumbs/118_4317.jpg"},{"iid":72367,"L":61.1,"a":63.5,"b":20.1,"src":"zone_builder_thumbs/118_72367.jpg"},{"iid":84862,"L":63.5,"a":61.0,"b":10.4,"src":"zone_builder_thumbs/118_84862.jpg"}],"117":[{"iid":39021,"L":57.3,"a":71.5,"b":5.3,"src":"zone_builder_thumbs/117_39021.jpg"},{"iid":11519,"L":59.1,"a":63.1,"b":4.8,"src":"zone_builder_thumbs/117_11519.jpg"}],"66":[{"iid":39559,"L":52.7,"a":70.1,"b":9.0,"src":"zone_builder_thumbs/66_39559.jpg"},{"iid":45789,"L":51.1,"a":70.3,"b":-1.9,"src":"zone_builder_thumbs/66_45789.jpg"},{"iid":15740,"L":48.7,"a":63.9,"b":11.1,"src":"zone_builder_thumbs/66_15740.jpg"},{"iid":8542,"L":50.5,"a":65.5,"b":7.1,"src":"zone_builder_thumbs/66_8542.jpg"},{"iid":72965,"L":53.1,"a":67.5,"b":10.9,"src":"zone_builder_thumbs/66_72965.jpg"}],"164":[{"iid":11999,"L":48.0,"a":-4.2,"b":18.9,"src":"zone_builder_thumbs/164_11999.jpg"},{"iid":84793,"L":46.0,"a":-1.6,"b":16.6,"src":"zone_builder_thumbs/164_84793.jpg"}],"112":[{"iid":4199,"L":53.1,"a":-7.6,"b":20.6,"src":"zone_builder_thumbs/112_4199.jpg"}],"111":[{"iid":61856,"L":49.2,"a":-16.5,"b":9.5,"src":"zone_builder_thumbs/111_61856.jpg"},{"iid":56510,"L":49.5,"a":-16.5,"b":9.1,"src":"zone_builder_thumbs/111_56510.jpg"}],"113":[{"iid":4234,"L":52.6,"a":-4.5,"b":5.3,"src":"zone_builder_thumbs/113_4234.jpg"},{"iid":4181,"L":52.2,"a":-9.4,"b":11.0,"src":"zone_builder_thumbs/113_4181.jpg"}],"104":[{"iid":61797,"L":46.7,"a":-7.3,"b":-2.3,"src":"zone_builder_thumbs/104_61797.jpg"},{"iid":35034,"L":49.9,"a":-8.8,"b":-1.0,"src":"zone_builder_thumbs/104_35034.jpg"},{"iid":15404,"L":49.8,"a":-8.6,"b":-1.0,"src":"zone_builder_thumbs/104_15404.jpg"},{"iid":39443,"L":46.7,"a":-7.3,"b":-2.3,"src":"zone_builder_thumbs/104_39443.jpg"}],"115":[{"iid":34550,"L":49.9,"a":-38.2,"b":12.5,"src":"zone_builder_thumbs/115_34550.jpg"},{"iid":4044,"L":45.5,"a":-36.4,"b":9.9,"src":"zone_builder_thumbs/115_4044.jpg"},{"iid":4457,"L":52.0,"a":-42.6,"b":13.0,"src":"zone_builder_thumbs/115_4457.jpg"},{"iid":4308,"L":48.2,"a":-40.3,"b":13.2,"src":"zone_builder_thumbs/115_4308.jpg"},{"iid":63358,"L":46.3,"a":-35.8,"b":12.3,"src":"zone_builder_thumbs/115_63358.jpg"},{"iid":46427,"L":46.0,"a":-35.7,"b":12.2,"src":"zone_builder_thumbs/115_46427.jpg"},{"iid":27039,"L":49.9,"a":-38.3,"b":12.5,"src":"zone_builder_thumbs/115_27039.jpg"}],"108":[{"iid":15631,"L":40.7,"a":-34.7,"b":11.6,"src":"zone_builder_thumbs/108_15631.jpg"},{"iid":51622,"L":37.2,"a":-30.4,"b":12.5,"src":"zone_builder_thumbs/108_51622.jpg"},{"iid":4095,"L":39.9,"a":-36.1,"b":15.2,"src":"zone_builder_thumbs/108_4095.jpg"},{"iid":63219,"L":37.2,"a":-30.5,"b":12.6,"src":"zone_builder_thumbs/108_63219.jpg"}],"209":[{"iid":72694,"L":65.1,"a":-39.0,"b":-1.4,"src":"zone_builder_thumbs/209_72694.jpg"},{"iid":4328,"L":69.5,"a":-41.3,"b":-4.3,"src":"zone_builder_thumbs/209_4328.jpg"},{"iid":73282,"L":62.0,"a":-39.1,"b":0.9,"src":"zone_builder_thumbs/209_73282.jpg"},{"iid":72729,"L":66.5,"a":-38.7,"b":0.5,"src":"zone_builder_thumbs/209_72729.jpg"},{"iid":73293,"L":63.5,"a":-39.4,"b":0.8,"src":"zone_builder_thumbs/209_73293.jpg"}],"208":[{"iid":4464,"L":56.2,"a":-38.7,"b":1.2,"src":"zone_builder_thumbs/208_4464.jpg"},{"iid":4187,"L":60.2,"a":-38.3,"b":-2.2,"src":"zone_builder_thumbs/208_4187.jpg"},{"iid":72724,"L":58.4,"a":-40.2,"b":3.0,"src":"zone_builder_thumbs/208_72724.jpg"},{"iid":73538,"L":59.0,"a":-36.9,"b":-0.8,"src":"zone_builder_thumbs/208_73538.jpg"}],"114":[{"iid":35102,"L":57.5,"a":-41.2,"b":13.1,"src":"zone_builder_thumbs/114_35102.jpg"},{"iid":11584,"L":55.1,"a":-46.0,"b":26.3,"src":"zone_builder_thumbs/114_11584.jpg"},{"iid":15386,"L":58.1,"a":-41.2,"b":13.2,"src":"zone_builder_thumbs/114_15386.jpg"}],"207":[{"iid":4358,"L":68.5,"a":-55.0,"b":36.8,"src":"zone_builder_thumbs/207_4358.jpg"}]};
+const TOTAL = 11803;
+const HAS_IMAGES = true;
+const CMAP = {};
+CLUSTERS.forEach((c, i) => { c._i = i; CMAP[c.id] = c; });
+
+// ============================
+// STATE
+// ============================
+let MODE = 'zones';  // 'zones' or 'themes'
+
+const SKEY = 'ciede2000_zone_builder';
+let S = { groups: [], activeId: null, nextId: 1 };
+
+const TKEY = 'ciede2000_theme_builder';
+let T = { themes: [], activeId: null, nextId: 1 };
+
+function save() {
+  localStorage.setItem(SKEY, JSON.stringify(S));
+  try { new BroadcastChannel('zone_builder').postMessage(S); } catch(_) {}
+}
+function saveT() {
+  localStorage.setItem(TKEY, JSON.stringify(T));
+  try { new BroadcastChannel('theme_builder').postMessage(T); } catch(_) {}
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(SKEY));
+    if (d && d.groups) { S = d; S.nextId = S.nextId || S.groups.length + 1; }
+  } catch(_) {}
+  try {
+    const dz = JSON.parse(localStorage.getItem(TKEY));
+    if (dz && dz.themes) { T = dz; T.nextId = T.nextId || T.themes.length + 1; }
+  } catch(_) {}
+}
+
+// ============================
+// MODE SWITCHING
+// ============================
+function setMode(m) {
+  MODE = m;
+  document.body.className = 'mode-' + m;
+  document.getElementById('mode-zones').className = m === 'zones' ? 'active' : '';
+  document.getElementById('mode-themes').className = m === 'themes' ? 'active' : '';
+  document.getElementById('btn-new').textContent = m === 'zones' ? '+ New Group (N)' : '+ New Theme (N)';
+  document.getElementById('btn-new').onclick = m === 'zones' ? createGroup : createTheme;
+  render();
+}
+
+// ============================
+// ZONE HELPERS
+// ============================
+function buildZoneItems() {
+  // Compute zone swatches dynamically from current zone state
+  return S.groups.map((g, i) => {
+    let tN=0, sL=0, sA=0, sB=0;
+    g.cids.forEach(id => {
+      const c = CMAP[id]; if (!c) return;
+      sL += c.L*c.n; sA += c.a*c.n; sB += c.b*c.n; tN += c.n;
+    });
+    const L = tN > 0 ? sL/tN : 50;
+    const a = tN > 0 ? sA/tN : 0;
+    const b = tN > 0 ? sB/tN : 0;
+    return {
+      id: i, name: g.name, hex: labToHex(L, a, b),
+      L: Math.round(L*10)/10, a: Math.round(a*10)/10, b: Math.round(b*10)/10,
+      n: tN, nc: g.cids.length, cids: g.cids.slice(),
+    };
+  }).filter(f => f.n > 0);
+}
+
+let _zoneItems = [];  // cached, rebuilt on render
+
+function findZone(fid) {
+  return T.themes.find(z => z.fids.includes(fid)) || null;
+}
+function activeZone() {
+  return T.themes.find(z => z.id === T.activeId) || null;
+}
+function zoneColor(zone) {
+  if (!zone.fids.length) return '#333';
+  let tN=0, sL=0, sA=0, sB=0;
+  zone.fids.forEach(fid => {
+    const f = _zoneItems[fid]; if (!f) return;
+    sL += f.L*f.n; sA += f.a*f.n; sB += f.b*f.n; tN += f.n;
+  });
+  return tN > 0 ? labToHex(sL/tN, sA/tN, sB/tN) : '#333';
+}
+function zoneProducts(zone) {
+  return zone.fids.reduce((s, fid) => s + (_zoneItems[fid]?.n || 0), 0);
+}
+
+// ============================
+// GROUP HELPERS
+// ============================
+function findGroup(cid) {
+  return S.groups.find(g => g.cids.includes(cid)) || null;
+}
+function activeGroup() {
+  return S.groups.find(g => g.id === S.activeId) || null;
+}
+
+// ============================
+// LAB -> HEX (for group color)
+// ============================
+function labToHex(L, a, b) {
+  let fy = (L + 16) / 116, fx = a / 500 + fy, fz = fy - b / 200;
+  const d = 6/29;
+  let x = fx > d ? fx*fx*fx : (fx - 16/116) / 7.787;
+  let y = fy > d ? fy*fy*fy : (fy - 16/116) / 7.787;
+  let z = fz > d ? fz*fz*fz : (fz - 16/116) / 7.787;
+  x *= 0.95047; z *= 1.08883;
+  let r = x*3.2406 + y*-1.5372 + z*-0.4986;
+  let g = x*-0.9689 + y*1.8758 + z*0.0415;
+  let bl = x*0.0557 + y*-0.2040 + z*1.0570;
+  const gam = v => v > 0.0031308 ? 1.055*Math.pow(v,1/2.4)-0.055 : 12.92*v;
+  r = gam(r); g = gam(g); bl = gam(bl);
+  const h = v => Math.max(0,Math.min(255,Math.round(v*255))).toString(16).padStart(2,'0');
+  return '#' + h(r) + h(g) + h(bl);
+}
+
+// ============================
+// CIEDE2000 DISTANCE
+// ============================
+function ciede2000(L1,a1,b1, L2,a2,b2) {
+  const rad = Math.PI/180, deg = 180/Math.PI;
+  const C1 = Math.sqrt(a1*a1 + b1*b1), C2 = Math.sqrt(a2*a2 + b2*b2);
+  const Cm = (C1 + C2) / 2;
+  const Cm7 = Math.pow(Cm, 7);
+  const G = 0.5 * (1 - Math.sqrt(Cm7 / (Cm7 + Math.pow(25, 7))));
+  const a1p = a1 * (1 + G), a2p = a2 * (1 + G);
+  const C1p = Math.sqrt(a1p*a1p + b1*b1), C2p = Math.sqrt(a2p*a2p + b2*b2);
+  let h1p = Math.atan2(b1, a1p) * deg; if (h1p < 0) h1p += 360;
+  let h2p = Math.atan2(b2, a2p) * deg; if (h2p < 0) h2p += 360;
+  const dLp = L2 - L1, dCp = C2p - C1p;
+  let dhp;
+  if (C1p * C2p === 0) dhp = 0;
+  else if (Math.abs(h2p - h1p) <= 180) dhp = h2p - h1p;
+  else if (h2p - h1p > 180) dhp = h2p - h1p - 360;
+  else dhp = h2p - h1p + 360;
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp / 2 * rad);
+  const Lm = (L1 + L2) / 2, Cpm = (C1p + C2p) / 2;
+  let Hpm;
+  if (C1p * C2p === 0) Hpm = h1p + h2p;
+  else if (Math.abs(h1p - h2p) <= 180) Hpm = (h1p + h2p) / 2;
+  else if (h1p + h2p < 360) Hpm = (h1p + h2p + 360) / 2;
+  else Hpm = (h1p + h2p - 360) / 2;
+  const T = 1
+    - 0.17 * Math.cos((Hpm - 30) * rad)
+    + 0.24 * Math.cos(2 * Hpm * rad)
+    + 0.32 * Math.cos((3 * Hpm + 6) * rad)
+    - 0.20 * Math.cos((4 * Hpm - 63) * rad);
+  const Lm50sq = (Lm - 50) * (Lm - 50);
+  const SL = 1 + 0.015 * Lm50sq / Math.sqrt(20 + Lm50sq);
+  const SC = 1 + 0.045 * Cpm;
+  const SH = 1 + 0.015 * Cpm * T;
+  const Cpm7 = Math.pow(Cpm, 7);
+  const RC = 2 * Math.sqrt(Cpm7 / (Cpm7 + Math.pow(25, 7)));
+  const dtheta = 30 * Math.exp(-Math.pow((Hpm - 275) / 25, 2));
+  const RT = -Math.sin(2 * dtheta * rad) * RC;
+  const rL = dLp / SL, rC = dCp / SC, rH = dHp / SH;
+  return Math.sqrt(rL*rL + rC*rC + rH*rH + RT*rC*rH);
+}
+
+// ============================
+// SORT ZONES BY PERCEPTUAL DISTANCE
+// ============================
+function sortGroupsByPerceptualDistance() {
+  const st = MODE === 'zones' ? S : T;
+  const groups = MODE === 'zones' ? st.groups : st.themes;
+  if (groups.length < 2) return;
+
+  // Compute weighted LAB centroid per group
+  const centroids = groups.map(g => {
+    const ids = MODE === 'zones' ? g.cids : g.fids;
+    let tN = 0, sL = 0, sA = 0, sB = 0;
+    if (MODE === 'zones') {
+      ids.forEach(id => {
+        const c = CMAP[id]; if (!c) return;
+        sL += c.L * c.n; sA += c.a * c.n; sB += c.b * c.n; tN += c.n;
+      });
+    } else {
+      ids.forEach(fid => {
+        const f = _zoneItems[fid]; if (!f) return;
+        sL += f.L * f.n; sA += f.a * f.n; sB += f.b * f.n; tN += f.n;
+      });
+    }
+    return tN > 0 ? { L: sL/tN, a: sA/tN, b: sB/tN } : { L: 50, a: 0, b: 0 };
+  });
+
+  // Nearest-neighbor chain: start with darkest zone (lowest L)
+  const n = centroids.length;
+  const used = new Uint8Array(n);
+  let first = 0, minL = Infinity;
+  for (let i = 0; i < n; i++) {
+    if (centroids[i].L < minL) { minL = centroids[i].L; first = i; }
+  }
+
+  const order = [first];
+  used[first] = 1;
+  while (order.length < n) {
+    const last = centroids[order[order.length - 1]];
+    let bestIdx = -1, bestDist = Infinity;
+    for (let i = 0; i < n; i++) {
+      if (used[i]) continue;
+      const d = ciede2000(last.L, last.a, last.b, centroids[i].L, centroids[i].a, centroids[i].b);
+      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    }
+    if (bestIdx < 0) break;
+    used[bestIdx] = 1;
+    order.push(bestIdx);
+  }
+
+  // Reorder groups array
+  const reordered = order.map(i => groups[i]);
+  groups.length = 0;
+  reordered.forEach(g => groups.push(g));
+
+  if (MODE === 'zones') save(); else saveT();
+  render();
+}
+
+// ============================
+// HSB SATURATION FROM LAB
+// ============================
+function labToRgbLinear(L, a, b) {
+  let fy = (L + 16) / 116, fx = a / 500 + fy, fz = fy - b / 200;
+  const d = 6/29;
+  let x = fx > d ? fx*fx*fx : (fx - 16/116) / 7.787;
+  let y = fy > d ? fy*fy*fy : (fy - 16/116) / 7.787;
+  let z = fz > d ? fz*fz*fz : (fz - 16/116) / 7.787;
+  x *= 0.95047; z *= 1.08883;
+  let r = x*3.2406 + y*-1.5372 + z*-0.4986;
+  let g = x*-0.9689 + y*1.8758 + z*0.0415;
+  let bl = x*0.0557 + y*-0.2040 + z*1.0570;
+  const gam = v => v > 0.0031308 ? 1.055*Math.pow(v,1/2.4)-0.055 : 12.92*v;
+  return [Math.max(0,Math.min(1,gam(r))), Math.max(0,Math.min(1,gam(g))), Math.max(0,Math.min(1,gam(bl)))];
+}
+
+function computeHsbSat(L, a, b) {
+  const [r, g, bl] = labToRgbLinear(L, a, b);
+  const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl);
+  return mx > 0 ? (mx - mn) / mx * 100 : 0;
+}
+
+const NEUTRAL_HSB = 12.0;
+const SATURATED_HSB = 50.0;
+
+// ============================
+// SORT ZONES BY HSB CLASS (TREEMAP ORDER)
+// ============================
+function sortGroupsByHSBClass() {
+  const st = MODE === 'zones' ? S : T;
+  const groups = MODE === 'zones' ? st.groups : st.themes;
+  if (groups.length < 2) return;
+
+  const indexed = groups.map((g, i) => {
+    let tN = 0, sL = 0, sA = 0, sB = 0;
+    const ids = MODE === 'zones' ? g.cids : g.fids;
+    if (MODE === 'zones') {
+      ids.forEach(id => {
+        const c = CMAP[id]; if (!c) return;
+        sL += c.L * c.n; sA += c.a * c.n; sB += c.b * c.n; tN += c.n;
+      });
+    } else {
+      ids.forEach(fid => {
+        const f = _zoneItems[fid]; if (!f) return;
+        sL += f.L * f.n; sA += f.a * f.n; sB += f.b * f.n; tN += f.n;
+      });
+    }
+    const L = tN > 0 ? sL/tN : 50;
+    const a = tN > 0 ? sA/tN : 0;
+    const b = tN > 0 ? sB/tN : 0;
+    const sat = computeHsbSat(L, a, b);
+    const hue = (Math.atan2(b, a) * 180 / Math.PI + 180) % 360;
+    return { i, L, a, b, sat, hue };
+  });
+
+  const neutral = indexed.filter(f => f.sat < NEUTRAL_HSB).sort((a, b) => a.L - b.L);
+  const chromatic = indexed.filter(f => f.sat >= NEUTRAL_HSB).sort((a, b) => a.hue - b.hue);
+
+  const order = [...neutral, ...chromatic].map(f => f.i);
+  const reordered = order.map(i => groups[i]);
+  groups.length = 0;
+  reordered.forEach(g => groups.push(g));
+
+  if (MODE === 'zones') save(); else saveT();
+  render();
+}
+
+function groupColor(grp) {
+  if (!grp.cids.length) return '#333';
+  let tN=0, sL=0, sA=0, sB=0;
+  grp.cids.forEach(id => {
+    const c = CMAP[id]; if (!c) return;
+    sL += c.L*c.n; sA += c.a*c.n; sB += c.b*c.n; tN += c.n;
+  });
+  return tN > 0 ? labToHex(sL/tN, sA/tN, sB/tN) : '#333';
+}
+
+function groupProducts(grp) {
+  return grp.cids.reduce((s, id) => s + (CMAP[id]?.n || 0), 0);
+}
+
+// ============================
+// FARTHEST-POINT ORDERING
+// ============================
+function farthestPointOrder(items) {
+  const n = items.length;
+  if (n <= 1) return items;
+
+  // LAB Euclidean distance
+  const labDist = (a, b) => {
+    const dL = a.L - b.L, da = a.a - b.a, db = a.b - b.b;
+    return Math.sqrt(dL*dL + da*da + db*db);
+  };
+
+  // Start with item closest to the mean
+  const mL = items.reduce((s,p) => s+p.L, 0) / n;
+  const ma = items.reduce((s,p) => s+p.a, 0) / n;
+  const mb = items.reduce((s,p) => s+p.b, 0) / n;
+  const mean = { L: mL, a: ma, b: mb };
+
+  let first = 0, best = Infinity;
+  for (let i = 0; i < n; i++) {
+    const d = labDist(items[i], mean);
+    if (d < best) { best = d; first = i; }
+  }
+
+  const sel = [first];
+  const minD = new Float64Array(n);
+  for (let i = 0; i < n; i++) minD[i] = labDist(items[first], items[i]);
+  minD[first] = -1;
+
+  while (sel.length < n) {
+    let bi = -1, bd = -1;
+    for (let i = 0; i < n; i++) {
+      if (minD[i] >= 0 && minD[i] > bd) { bd = minD[i]; bi = i; }
+    }
+    if (bi < 0) break;
+    sel.push(bi);
+    minD[bi] = -1;
+    for (let i = 0; i < n; i++) {
+      if (minD[i] >= 0) minD[i] = Math.min(minD[i], labDist(items[bi], items[i]));
+    }
+  }
+
+  return sel.map(i => items[i]);
+}
+
+// ============================
+// RENDERING
+// ============================
+function renderGrid() {
+  const el = document.getElementById('grid');
+  let html = '';
+  if (MODE === 'zones') {
+    CLUSTERS.forEach(c => {
+      const grp = findGroup(c.id);
+      let cls = 'sw';
+      if (grp) cls += grp.id === S.activeId ? ' active-member' : ' assigned';
+      const tc = c.L < 55 ? '#fff' : '#000';
+      html += '<div class="' + cls + '" style="background:' + c.hex + ';color:' + tc + '" '
+            + 'data-id="' + c.id + '" '
+            + 'onmouseenter="tipOn(this,' + c.id + ')" '
+            + 'onmousemove="tipMv(event)" '
+            + 'onmouseleave="tipOff()" '
+            + 'onclick="clickSw(' + c.id + ')">'
+            + '<span class="id">C' + c.id + '</span></div>';
+    });
+  } else {
+    _zoneItems.forEach(f => {
+      const zone = findZone(f.id);
+      let cls = 'sw';
+      if (zone) cls += zone.id === T.activeId ? ' active-member' : ' assigned';
+      const tc = f.L < 55 ? '#fff' : '#000';
+      html += '<div class="' + cls + '" style="background:' + f.hex + ';color:' + tc + '" '
+            + 'data-id="' + f.id + '" '
+            + 'onmouseenter="tipOn(this,' + f.id + ')" '
+            + 'onmousemove="tipMv(event)" '
+            + 'onmouseleave="tipOff()" '
+            + 'onclick="clickSw(' + f.id + ')">'
+            + '<span class="id">' + f.nc + 'c</span></div>';
+    });
+  }
+  el.innerHTML = html;
+}
+
+function renderGroups() {
+  const el = document.getElementById('groups-panel');
+  let html = '';
+
+  if (MODE === 'zones') {
+    if (S.groups.length === 0) {
+      html += '<div class="empty-hint">No groups yet.<br>Click <b>+ New Group</b> to start,<br>then click swatches to assign them.</div>';
+    }
+    S.groups.forEach((g, gi) => {
+      const isActive = g.id === S.activeId;
+      const gc = groupColor(g);
+      const np = groupProducts(g);
+      const pct = TOTAL > 0 ? (np / TOTAL * 100).toFixed(1) : '0.0';
+      html += '<div class="gcard' + (isActive ? ' active' : '') + '" draggable="true" '
+            + 'data-gid="' + g.id + '" '
+            + 'onclick="selectGroup(' + g.id + ')" '
+            + 'ondragstart="dragGroupStart(event,' + g.id + ')" '
+            + 'ondragover="dragOver(event)" '
+            + 'ondragleave="dragLeave(event)" '
+            + 'ondrop="dragDrop(event,' + g.id + ')" '
+            + 'ondragend="dragEnd()">';
+      html += '<div class="gcard-hdr">';
+      html += '<div class="gcolor" style="background:' + gc + '"></div>';
+      html += '<input class="gname" value="' + escAttr(g.name) + '" '
+            + 'onclick="event.stopPropagation()" '
+            + 'onchange="renameGroup(' + g.id + ',this.value)" '
+            + 'onkeydown="if(event.keyCode===13)this.blur()">';
+      html += '</div>';
+      html += '<div class="gstats">' + g.cids.length + ' cluster' + (g.cids.length !== 1 ? 's' : '')
+            + ' &middot; ' + np.toLocaleString() + ' products (' + pct + '%)</div>';
+      if (g.cids.length > 0) {
+        html += '<div class="gswatches">';
+        g.cids.forEach(cid => {
+          const c = CMAP[cid];
+          if (!c) return;
+          html += '<div class="gsw" style="background:' + c.hex + '" title="C' + c.id + ' (' + c.n.toLocaleString() + ')" '
+                + 'draggable="true" '
+                + 'onclick="event.stopPropagation();removeSw(' + cid + ',' + g.id + ')" '
+                + 'ondragstart="event.stopPropagation();dragSwStart(event,' + cid + ',' + g.id + ')" '
+                + 'ondragend="dragEnd()"></div>';
+        });
+        html += '</div>';
+      }
+      html += '<div class="gactions">';
+      if (isActive) html += '<button onclick="event.stopPropagation()" disabled style="opacity:0.5">Selected</button>';
+      else html += '<button onclick="event.stopPropagation();selectGroup(' + g.id + ')">Select</button>';
+      html += '<button class="danger" onclick="event.stopPropagation();deleteGroup(' + g.id + ')">Delete</button>';
+      html += '</div></div>';
+    });
+    html += '<button class="new-group-btn" onclick="createGroup()">+ New Group</button>';
+  } else {
+    // ZONE MODE
+    if (T.themes.length === 0) {
+      html += '<div class="empty-hint">No themes yet.<br>Click <b>+ New Theme</b> to start,<br>then click zone swatches to assign them.</div>';
+    }
+    T.themes.forEach((z, zi) => {
+      const isActive = z.id === T.activeId;
+      const zc = zoneColor(z);
+      const np = zoneProducts(z);
+      const nf = z.fids.length;
+      const pct = TOTAL > 0 ? (np / TOTAL * 100).toFixed(1) : '0.0';
+      html += '<div class="gcard' + (isActive ? ' active' : '') + '" draggable="true" '
+            + 'data-gid="' + z.id + '" '
+            + 'onclick="selectTheme(' + z.id + ')" '
+            + 'ondragstart="dragGroupStart(event,' + z.id + ')" '
+            + 'ondragover="dragOver(event)" '
+            + 'ondragleave="dragLeave(event)" '
+            + 'ondrop="dragDrop(event,' + z.id + ')" '
+            + 'ondragend="dragEnd()">';
+      html += '<div class="gcard-hdr">';
+      html += '<div class="gcolor" style="background:' + zc + '"></div>';
+      html += '<input class="gname" value="' + escAttr(z.name) + '" '
+            + 'onclick="event.stopPropagation()" '
+            + 'onchange="renameTheme(' + z.id + ',this.value)" '
+            + 'onkeydown="if(event.keyCode===13)this.blur()">';
+      html += '</div>';
+      html += '<div class="gstats">' + nf + ' famil' + (nf !== 1 ? 'ies' : 'y')
+            + ' &middot; ' + np.toLocaleString() + ' products (' + pct + '%)</div>';
+      if (z.fids.length > 0) {
+        html += '<div class="gswatches">';
+        z.fids.forEach(fid => {
+          const f = _zoneItems[fid];
+          if (!f) return;
+          html += '<div class="gsw" style="background:' + f.hex + '" '
+                + 'title="' + escAttr(f.name) + ' (' + f.n.toLocaleString() + ' products, ' + f.nc + ' clusters)" '
+                + 'draggable="true" '
+                + 'onclick="event.stopPropagation();removeSw(' + fid + ',' + z.id + ')" '
+                + 'ondragstart="event.stopPropagation();dragSwStart(event,' + fid + ',' + z.id + ')" '
+                + 'ondragend="dragEnd()"></div>';
+        });
+        html += '</div>';
+      }
+      html += '<div class="gactions">';
+      if (isActive) html += '<button onclick="event.stopPropagation()" disabled style="opacity:0.5">Selected</button>';
+      else html += '<button onclick="event.stopPropagation();selectTheme(' + z.id + ')">Select</button>';
+      html += '<button class="danger" onclick="event.stopPropagation();deleteTheme(' + z.id + ')">Delete</button>';
+      html += '</div></div>';
+    });
+    html += '<button class="new-group-btn" onclick="createTheme()">+ New Theme</button>';
+  }
+  el.innerHTML = html;
+}
+
+function renderPreview() {
+  const panel = document.getElementById('preview');
+
+  if (MODE === 'zones') {
+    if (!HAS_IMAGES) { panel.style.display = 'none'; return; }
+    const ag = activeGroup();
+    if (!ag || ag.cids.length === 0) { panel.style.display = 'none'; return; }
+    let all = [];
+    ag.cids.forEach(cid => {
+      const prods = PRODUCTS[cid];
+      if (!prods) return;
+      prods.forEach(p => all.push({ ...p, cid: cid }));
+    });
+    if (all.length === 0) { panel.style.display = 'none'; return; }
+    const ordered = farthestPointOrder(all);
+    let html = '<div class="pv-hdr">Products in <b>' + escHtml(ag.name) + '</b> &mdash; '
+             + ordered.length + ' sampled, farthest-point ordered</div>';
+    html += '<div class="pv-grid">';
+    ordered.forEach(p => {
+      html += '<div class="pv-item">'
+            + '<img src="' + p.src + '" loading="lazy">'
+            + '<span class="pv-badge">C' + p.cid + '</span>'
+            + '</div>';
+    });
+    html += '</div>';
+    panel.innerHTML = html;
+    panel.style.display = 'block';
+  } else {
+    // Zone mode: show product thumbnails (if available) + cluster swatches
+    const az = activeZone();
+    if (!az || az.fids.length === 0) { panel.style.display = 'none'; return; }
+
+    let html = '';
+
+    // Product thumbnails across all zones in this zone
+    if (HAS_IMAGES) {
+      let all = [];
+      az.fids.forEach(fid => {
+        const f = _zoneItems[fid];
+        if (!f) return;
+        (f.cids || []).forEach(cid => {
+          const prods = PRODUCTS[cid];
+          if (!prods) return;
+          prods.forEach(p => all.push({ ...p, cid: cid, fname: f.name }));
+        });
+      });
+      if (all.length > 0) {
+        const ordered = farthestPointOrder(all);
+        html += '<div class="pv-hdr">Products in <b>' + escHtml(az.name) + '</b> &mdash; '
+              + ordered.length + ' sampled, farthest-point ordered</div>';
+        html += '<div class="pv-grid">';
+        ordered.forEach(p => {
+          html += '<div class="pv-item">'
+                + '<img src="' + p.src + '" loading="lazy">'
+                + '<span class="pv-badge">' + escHtml(p.fname) + '</span>'
+                + '</div>';
+        });
+        html += '</div>';
+      }
+    }
+
+    // Cluster swatches grouped by zone (always shown)
+    html += '<div class="pv-hdr" style="margin-top:10px">Clusters in <b>' + escHtml(az.name) + '</b></div>';
+    az.fids.forEach(fid => {
+      const f = _zoneItems[fid];
+      if (!f) return;
+      html += '<div class="pv-zone">';
+      html += '<div class="pv-zone-hdr">'
+            + '<div class="pv-zone-sw" style="background:' + f.hex + '"></div>'
+            + '<span>' + escHtml(f.name) + ' &middot; ' + f.n.toLocaleString() + ' products &middot; ' + f.nc + ' clusters</span>'
+            + '</div>';
+      html += '<div class="pv-clusters">';
+      (f.cids || []).forEach(cid => {
+        const c = CMAP[cid];
+        if (!c) return;
+        html += '<div class="pv-csw" style="background:' + c.hex + '" '
+              + 'title="C' + c.id + ' (' + c.n.toLocaleString() + ' products)"></div>';
+      });
+      html += '</div></div>';
+    });
+    panel.innerHTML = html;
+    panel.style.display = 'block';
+  }
+}
+
+function updateStatus() {
+  if (MODE === 'zones') {
+    const assigned = S.groups.reduce((s, g) => s + g.cids.length, 0);
+    const unassigned = CLUSTERS.length - assigned;
+    const ag = activeGroup();
+    let txt = assigned + ' assigned, ' + unassigned + ' unassigned';
+    if (ag) txt += ' &nbsp;|&nbsp; Active: ' + escHtml(ag.name) + ' (' + ag.cids.length + ')';
+    document.getElementById('status').innerHTML = txt;
+  } else {
+    const assigned = T.themes.reduce((s, z) => s + z.fids.length, 0);
+    const unassigned = _zoneItems.length - assigned;
+    const az = activeZone();
+    let txt = assigned + ' assigned, ' + unassigned + ' unassigned';
+    if (az) txt += ' &nbsp;|&nbsp; Active: ' + escHtml(az.name) + ' (' + az.fids.length + ' zones)';
+    document.getElementById('status').innerHTML = txt;
+  }
+}
+
+function renderMinimap() {
+  const el = document.getElementById('minimap');
+  if (!el) return;
+  const groups = MODE === 'zones' ? S.groups : T.themes;
+  let html = '';
+  groups.forEach((g, i) => {
+    let tN = 0, sL = 0, sA = 0, sB = 0;
+    const ids = MODE === 'zones' ? g.cids : g.fids;
+    if (MODE === 'zones') {
+      ids.forEach(id => {
+        const c = CMAP[id]; if (!c) return;
+        sL += c.L * c.n; sA += c.a * c.n; sB += c.b * c.n; tN += c.n;
+      });
+    } else {
+      ids.forEach(fid => {
+        const f = _zoneItems[fid]; if (!f) return;
+        sL += f.L * f.n; sA += f.a * f.n; sB += f.b * f.n; tN += f.n;
+      });
+    }
+    const hex = tN > 0 ? labToHex(sL/tN, sA/tN, sB/tN) : '#333';
+    const active = (MODE === 'zones' ? S.activeId : T.activeId) === g.id ? ' active' : '';
+    html += '<div class="mm-sw' + active + '" style="background:' + hex + '" '
+          + 'title="' + g.name + '" data-gid="' + g.id + '" '
+          + 'onclick="minimapClick(' + g.id + ')"></div>';
+  });
+  el.innerHTML = html;
+}
+
+function minimapClick(gid) {
+  if (MODE === 'zones') {
+    S.activeId = S.activeId === gid ? null : gid;
+    save();
+  } else {
+    T.activeId = T.activeId === gid ? null : gid;
+    saveT();
+  }
+  render();
+  // Scroll the group into view in the groups panel
+  const card = document.querySelector('.gcard[data-gid="' + gid + '"]');
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function render() {
+  _zoneItems = buildZoneItems();
+  renderGrid(); renderGroups(); renderPreview(); renderMinimap(); updateStatus();
+}
+
+// ============================
+// ACTIONS
+// ============================
+function createGroup() {
+  const g = { id: S.nextId, name: 'Group ' + S.nextId, cids: [] };
+  S.nextId++;
+  const activeIdx = S.groups.findIndex(gr => gr.id === S.activeId);
+  if (activeIdx >= 0) {
+    S.groups.splice(activeIdx + 1, 0, g);
+  } else {
+    S.groups.push(g);
+  }
+  S.activeId = g.id;
+  save(); render();
+}
+
+function selectGroup(id) {
+  S.activeId = S.activeId === id ? null : id;
+  save(); render();
+}
+
+function deleteGroup(id) {
+  S.groups = S.groups.filter(g => g.id !== id);
+  if (S.activeId === id) S.activeId = S.groups.length > 0 ? S.groups[S.groups.length - 1].id : null;
+  save(); render();
+}
+
+function renameGroup(id, name) {
+  const g = S.groups.find(g => g.id === id);
+  if (g) g.name = name.trim() || g.name;
+  save(); renderGroups();
+}
+
+// ---- Theme actions ----
+function createTheme() {
+  const z = { id: T.nextId, name: 'Theme ' + T.nextId, fids: [] };
+  T.nextId++;
+  const activeIdx = T.themes.findIndex(zn => zn.id === T.activeId);
+  if (activeIdx >= 0) {
+    T.themes.splice(activeIdx + 1, 0, z);
+  } else {
+    T.themes.push(z);
+  }
+  T.activeId = z.id;
+  saveT(); render();
+}
+
+function selectTheme(id) {
+  T.activeId = T.activeId === id ? null : id;
+  saveT(); render();
+}
+
+function deleteTheme(id) {
+  T.themes = T.themes.filter(z => z.id !== id);
+  if (T.activeId === id) T.activeId = T.themes.length > 0 ? T.themes[T.themes.length - 1].id : null;
+  saveT(); render();
+}
+
+function renameTheme(id, name) {
+  const z = T.themes.find(z => z.id === id);
+  if (z) z.name = name.trim() || z.name;
+  saveT(); renderGroups();
+}
+
+// ---- Mode-aware click/remove ----
+function clickSw(itemId) {
+  if (MODE === 'zones') {
+    const existing = findGroup(itemId);
+    if (existing && existing.id === S.activeId) {
+      existing.cids = existing.cids.filter(id => id !== itemId);
+    } else if (S.activeId) {
+      if (existing) existing.cids = existing.cids.filter(id => id !== itemId);
+      const ag = activeGroup();
+      if (ag) ag.cids.push(itemId);
+    }
+    save(); render();
+  } else {
+    const existing = findZone(itemId);
+    if (existing && existing.id === T.activeId) {
+      existing.fids = existing.fids.filter(id => id !== itemId);
+    } else if (T.activeId) {
+      if (existing) existing.fids = existing.fids.filter(id => id !== itemId);
+      const az = activeZone();
+      if (az) az.fids.push(itemId);
+    }
+    saveT(); render();
+  }
+}
+
+function removeSw(itemId, groupId) {
+  if (MODE === 'zones') {
+    const g = S.groups.find(g => g.id === groupId);
+    if (g) g.cids = g.cids.filter(id => id !== itemId);
+    save(); render();
+  } else {
+    const z = T.themes.find(z => z.id === groupId);
+    if (z) z.fids = z.fids.filter(id => id !== itemId);
+    saveT(); render();
+  }
+}
+
+// ============================
+// DRAG AND DROP
+// ============================
+let dragState = null;
+
+function dragGroupStart(e, gid) {
+  dragState = { type: 'group', groupId: gid };
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+}
+
+function dragSwStart(e, itemId, gid) {
+  e.stopPropagation();
+  dragState = { type: 'swatch', itemId: itemId, sourceGroupId: gid };
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+}
+
+function dragOver(e) {
+  if (!dragState) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const card = e.currentTarget;
+  document.querySelectorAll('.gcard').forEach(c => {
+    c.classList.remove('drop-above', 'drop-below', 'drop-target');
+  });
+  if (dragState.type === 'group') {
+    const rect = card.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    card.classList.add(e.clientY < mid ? 'drop-above' : 'drop-below');
+  } else if (dragState.type === 'swatch') {
+    card.classList.add('drop-target');
+  }
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drop-above', 'drop-below', 'drop-target');
+}
+
+function dragDrop(e, targetGid) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.querySelectorAll('.gcard').forEach(c => {
+    c.classList.remove('drop-above', 'drop-below', 'drop-target', 'dragging');
+  });
+  if (!dragState) return;
+  if (dragState.type === 'group') {
+    const arr = MODE === 'zones' ? S.groups : T.themes;
+    const fromIdx = arr.findIndex(g => g.id === dragState.groupId);
+    let toIdx = arr.findIndex(g => g.id === targetGid);
+    if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) { dragState = null; return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const insertBefore = e.clientY < rect.top + rect.height / 2;
+    const [item] = arr.splice(fromIdx, 1);
+    toIdx = arr.findIndex(g => g.id === targetGid);
+    arr.splice(insertBefore ? toIdx : toIdx + 1, 0, item);
+  } else if (dragState.type === 'swatch') {
+    if (MODE === 'zones') {
+      const src = S.groups.find(g => g.id === dragState.sourceGroupId);
+      const tgt = S.groups.find(g => g.id === targetGid);
+      if (!src || !tgt || src.id === tgt.id) { dragState = null; return; }
+      src.cids = src.cids.filter(id => id !== dragState.itemId);
+      tgt.cids.push(dragState.itemId);
+    } else {
+      const src = T.themes.find(z => z.id === dragState.sourceGroupId);
+      const tgt = T.themes.find(z => z.id === targetGid);
+      if (!src || !tgt || src.id === tgt.id) { dragState = null; return; }
+      src.fids = src.fids.filter(id => id !== dragState.itemId);
+      tgt.fids.push(dragState.itemId);
+    }
+  }
+  dragState = null;
+  if (MODE === 'zones') save(); else saveT();
+  render();
+}
+
+function dragEnd() {
+  dragState = null;
+  document.querySelectorAll('.gcard').forEach(c => {
+    c.classList.remove('drop-above', 'drop-below', 'drop-target', 'dragging');
+  });
+  document.querySelectorAll('.gsw').forEach(c => {
+    c.classList.remove('dragging');
+  });
+}
+
+function clearAll() {
+  if (MODE === 'zones') {
+    if (S.groups.length === 0) return;
+    if (!confirm('Remove all groups and assignments?')) return;
+    S.groups = []; S.activeId = null;
+    save(); render();
+  } else {
+    if (T.themes.length === 0) return;
+    if (!confirm('Remove all zones and assignments?')) return;
+    T.themes = []; T.activeId = null;
+    saveT(); render();
+  }
+}
+
+// ============================
+// EXPORT / IMPORT
+// ============================
+function exportJSON() {
+  if (MODE === 'zones') {
+    const assigned = new Set();
+    S.groups.forEach(g => g.cids.forEach(id => assigned.add(id)));
+    const data = {
+      zones: S.groups.map(g => ({
+        name: g.name,
+        cluster_ids: g.cids,
+        n_clusters: g.cids.length,
+        n_products: groupProducts(g),
+      })),
+      unassigned: CLUSTERS.filter(c => !assigned.has(c.id)).map(c => c.id),
+      total_clusters: CLUSTERS.length,
+      total_products: TOTAL,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cluster_zones.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } else {
+    const assigned = new Set();
+    T.themes.forEach(z => z.fids.forEach(fid => assigned.add(fid)));
+    const fi = _zoneItems;
+    const fmap = {};
+    fi.forEach(f => { fmap[f.id] = f; });
+    const data = {
+      zones: T.themes.map(z => ({
+        name: z.name,
+        zone_indices: z.fids,
+        zone_names: z.fids.map(fid => fmap[fid]?.name || ''),
+        n_zones: z.fids.length,
+        n_products: zoneProducts(z),
+      })),
+      unassigned: fi.filter(f => !assigned.has(f.id)).map(f => f.id),
+      total_zones: fi.length,
+      total_products: TOTAL,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cluster_themes.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+}
+
+function handleImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (MODE === 'zones') {
+        if (!data.zones || !Array.isArray(data.zones)) throw new Error('Missing zones array');
+        S.groups = data.zones.map((f, i) => ({
+          id: i + 1,
+          name: f.name || ('Group ' + (i + 1)),
+          cids: (f.cluster_ids || []).filter(id => CMAP[id]),
+        }));
+        S.nextId = S.groups.length + 1;
+        S.activeId = S.groups.length > 0 ? S.groups[0].id : null;
+        save();
+      } else {
+        if (!data.zones || !Array.isArray(data.zones)) throw new Error('Missing zones array');
+        T.themes = data.zones.map((z, i) => ({
+          id: i + 1,
+          name: z.name || ('Zone ' + (i + 1)),
+          fids: z.zone_indices || [],
+        }));
+        T.nextId = T.themes.length + 1;
+        T.activeId = T.themes.length > 0 ? T.themes[0].id : null;
+        saveT();
+      }
+      render();
+    } catch(err) {
+      alert('Import failed: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ============================
+// TOOLTIP
+// ============================
+const tip = document.getElementById('tip');
+function tipOn(el, itemId) {
+  if (MODE === 'zones') {
+    const c = CMAP[itemId]; if (!c) return;
+    const pct = (c.n / TOTAL * 100).toFixed(1);
+    const grp = findGroup(itemId);
+    let h = '<b>C' + c.id + '</b> &nbsp;' + c.hex
+          + '<br>Products: ' + c.n.toLocaleString() + ' (' + pct + '%)'
+          + '<br>L*=' + c.L + ' &nbsp;a*=' + c.a + ' &nbsp;b*=' + c.b;
+    if (grp) h += '<br><span style="color:#999">In: ' + escHtml(grp.name) + '</span>';
+    tip.innerHTML = h;
+  } else {
+    const f = _zoneItems[itemId]; if (!f) return;
+    const pct = (f.n / TOTAL * 100).toFixed(1);
+    const zone = findZone(itemId);
+    let h = '<b>' + escHtml(f.name) + '</b> &nbsp;' + f.hex
+          + '<br>Products: ' + f.n.toLocaleString() + ' (' + pct + '%)'
+          + '<br>Clusters: ' + f.nc
+          + '<br>L*=' + f.L + ' &nbsp;a*=' + f.a + ' &nbsp;b*=' + f.b;
+    if (zone) h += '<br><span style="color:#999">In: ' + escHtml(zone.name) + '</span>';
+    tip.innerHTML = h;
+  }
+  tip.style.display = 'block';
+}
+function tipMv(e) {
+  let x = e.clientX + 14, y = e.clientY + 14;
+  const r = tip.getBoundingClientRect();
+  if (x + r.width > window.innerWidth) x = e.clientX - r.width - 8;
+  if (y + r.height > window.innerHeight) y = e.clientY - r.height - 8;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function tipOff() { tip.style.display = 'none'; }
+
+// ============================
+// KEYBOARD SHORTCUTS
+// ============================
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'n' || e.key === 'N') {
+    if (MODE === 'zones') createGroup(); else createTheme();
+    e.preventDefault();
+  }
+  if (e.key === 'e' || e.key === 'E') { exportJSON(); e.preventDefault(); }
+  if (e.key >= '1' && e.key <= '9') {
+    const idx = parseInt(e.key) - 1;
+    if (MODE === 'zones') {
+      if (idx < S.groups.length) { selectGroup(S.groups[idx].id); e.preventDefault(); }
+    } else {
+      if (idx < T.themes.length) { selectTheme(T.themes[idx].id); e.preventDefault(); }
+    }
+  }
+});
+
+// ============================
+// UTILITIES
+// ============================
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ============================
+// INIT
+// ============================
+load();
+document.body.className = 'mode-' + MODE;
+render();
+</script>
+</body>
+</html>

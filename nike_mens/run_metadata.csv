@@ -1,0 +1,2 @@
+brand,gender,cluster_threshold,min_products_per_cluster,min_discounted_per_cluster,fdr_alpha,baseline_freq_pct,baseline_depth_pct,n_products,n_discounted,n_clusters,n_testable_freq,n_testable_depth,n_significant_freq,n_significant_depth,time_pairwise_s,time_linkage_s,time_total_s
+nike,mens,8,14,10,0.05,40.1958413926499,25.593009796805113,66176,26600,519,461,403,134,46,43.835036754608154,573.4562635421753,617.2913002967834

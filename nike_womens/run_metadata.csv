@@ -1,0 +1,2 @@
+brand,gender,cluster_threshold,min_products_per_cluster,min_discounted_per_cluster,fdr_alpha,baseline_freq_pct,baseline_depth_pct,n_products,n_discounted,n_clusters,n_testable_freq,n_testable_depth,n_significant_freq,n_significant_depth,time_pairwise_s,time_linkage_s,time_total_s
+nike,womens,8,14,10,0.05,42.1834917760676,24.65789922044657,39762,16773,428,365,308,131,32,13.62138319015503,28.64212155342102,42.26350474357605

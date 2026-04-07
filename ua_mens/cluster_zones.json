@@ -1,0 +1,1421 @@
+{
+  "zones": [
+    {
+      "cluster_ids": [
+        272,
+        273,
+        287,
+        288
+      ],
+      "n_clusters": 4,
+      "n_products": 2474,
+      "name": "Group 1"
+    },
+    {
+      "cluster_ids": [
+        286
+      ],
+      "n_clusters": 1,
+      "n_products": 124,
+      "name": "Group 2"
+    },
+    {
+      "cluster_ids": [
+        282,
+        283,
+        284,
+        285
+      ],
+      "n_clusters": 4,
+      "n_products": 2041,
+      "name": "Group 3"
+    },
+    {
+      "cluster_ids": [
+        148,
+        149,
+        291
+      ],
+      "n_clusters": 3,
+      "n_products": 325,
+      "name": "Group 4"
+    },
+    {
+      "cluster_ids": [
+        143,
+        150
+      ],
+      "n_clusters": 2,
+      "n_products": 54,
+      "name": "Group 5"
+    },
+    {
+      "cluster_ids": [
+        51,
+        146,
+        147
+      ],
+      "n_clusters": 3,
+      "n_products": 684,
+      "name": "Group 6"
+    },
+    {
+      "cluster_ids": [
+        152
+      ],
+      "n_clusters": 1,
+      "n_products": 27,
+      "name": "Group 7"
+    },
+    {
+      "cluster_ids": [
+        48,
+        49
+      ],
+      "n_clusters": 2,
+      "n_products": 262,
+      "name": "Group 8"
+    },
+    {
+      "cluster_ids": [
+        53,
+        58
+      ],
+      "n_clusters": 2,
+      "n_products": 433,
+      "name": "Group 9"
+    },
+    {
+      "cluster_ids": [
+        50,
+        54
+      ],
+      "n_clusters": 2,
+      "n_products": 307,
+      "name": "Group 10"
+    },
+    {
+      "cluster_ids": [
+        16,
+        17,
+        20
+      ],
+      "n_clusters": 3,
+      "n_products": 227,
+      "name": "Group 11"
+    },
+    {
+      "cluster_ids": [
+        129,
+        134
+      ],
+      "n_clusters": 2,
+      "n_products": 120,
+      "name": "Group 12"
+    },
+    {
+      "cluster_ids": [
+        60,
+        114
+      ],
+      "n_clusters": 2,
+      "n_products": 476,
+      "name": "Group 13"
+    },
+    {
+      "cluster_ids": [
+        18
+      ],
+      "n_clusters": 1,
+      "n_products": 27,
+      "name": "Group 14"
+    },
+    {
+      "cluster_ids": [
+        119
+      ],
+      "n_clusters": 1,
+      "n_products": 302,
+      "name": "Group 15"
+    },
+    {
+      "cluster_ids": [
+        113
+      ],
+      "n_clusters": 1,
+      "n_products": 42,
+      "name": "Group 16"
+    },
+    {
+      "cluster_ids": [
+        112,
+        117
+      ],
+      "n_clusters": 2,
+      "n_products": 1323,
+      "name": "Group 17"
+    },
+    {
+      "cluster_ids": [
+        9,
+        19
+      ],
+      "n_clusters": 2,
+      "n_products": 35,
+      "name": "Group 18"
+    },
+    {
+      "cluster_ids": [
+        87,
+        89
+      ],
+      "n_clusters": 2,
+      "n_products": 266,
+      "name": "Group 19"
+    },
+    {
+      "cluster_ids": [
+        128,
+        131
+      ],
+      "n_clusters": 2,
+      "n_products": 201,
+      "name": "Group 20"
+    },
+    {
+      "cluster_ids": [
+        5,
+        120
+      ],
+      "n_clusters": 2,
+      "n_products": 87,
+      "name": "Group 21"
+    },
+    {
+      "cluster_ids": [
+        103,
+        105,
+        116,
+        118
+      ],
+      "n_clusters": 4,
+      "n_products": 2880,
+      "name": "Group 22"
+    },
+    {
+      "cluster_ids": [
+        88,
+        90,
+        101,
+        102,
+        110,
+        111
+      ],
+      "n_clusters": 6,
+      "n_products": 1681,
+      "name": "Group 23"
+    },
+    {
+      "cluster_ids": [
+        106,
+        115
+      ],
+      "n_clusters": 2,
+      "n_products": 96,
+      "name": "Group 24"
+    },
+    {
+      "cluster_ids": [
+        108,
+        109
+      ],
+      "n_clusters": 2,
+      "n_products": 600,
+      "name": "Group 25"
+    },
+    {
+      "cluster_ids": [
+        100
+      ],
+      "n_clusters": 1,
+      "n_products": 2023,
+      "name": "Group 26"
+    },
+    {
+      "cluster_ids": [
+        271
+      ],
+      "n_clusters": 1,
+      "n_products": 54,
+      "name": "Group 27"
+    },
+    {
+      "cluster_ids": [
+        4
+      ],
+      "n_clusters": 1,
+      "n_products": 4,
+      "name": "Group 28"
+    },
+    {
+      "cluster_ids": [
+        12
+      ],
+      "n_clusters": 1,
+      "n_products": 16,
+      "name": "Group 29"
+    },
+    {
+      "cluster_ids": [
+        168,
+        169
+      ],
+      "n_clusters": 2,
+      "n_products": 40,
+      "name": "Group 30"
+    },
+    {
+      "cluster_ids": [
+        57,
+        59
+      ],
+      "n_clusters": 2,
+      "n_products": 34,
+      "name": "Group 31"
+    },
+    {
+      "cluster_ids": [
+        10,
+        11
+      ],
+      "n_clusters": 2,
+      "n_products": 28,
+      "name": "Group 32"
+    },
+    {
+      "cluster_ids": [
+        163,
+        165
+      ],
+      "n_clusters": 2,
+      "n_products": 30,
+      "name": "Group 33"
+    },
+    {
+      "cluster_ids": [
+        7,
+        8
+      ],
+      "n_clusters": 2,
+      "n_products": 154,
+      "name": "Group 34"
+    },
+    {
+      "cluster_ids": [
+        56,
+        170
+      ],
+      "n_clusters": 2,
+      "n_products": 109,
+      "name": "Group 35"
+    },
+    {
+      "cluster_ids": [
+        28
+      ],
+      "n_clusters": 1,
+      "n_products": 18,
+      "name": "Group 36"
+    },
+    {
+      "cluster_ids": [
+        6,
+        61
+      ],
+      "n_clusters": 2,
+      "n_products": 44,
+      "name": "Group 37"
+    },
+    {
+      "cluster_ids": [
+        27,
+        40,
+        42
+      ],
+      "n_clusters": 3,
+      "n_products": 148,
+      "name": "Group 38"
+    },
+    {
+      "cluster_ids": [
+        2,
+        3
+      ],
+      "n_clusters": 2,
+      "n_products": 216,
+      "name": "Group 39"
+    },
+    {
+      "cluster_ids": [
+        276,
+        279
+      ],
+      "n_clusters": 2,
+      "n_products": 82,
+      "name": "Group 40"
+    },
+    {
+      "cluster_ids": [
+        260,
+        261,
+        264
+      ],
+      "n_clusters": 3,
+      "n_products": 359,
+      "name": "Group 41"
+    },
+    {
+      "cluster_ids": [
+        33
+      ],
+      "n_clusters": 1,
+      "n_products": 18,
+      "name": "Group 42"
+    },
+    {
+      "cluster_ids": [
+        35
+      ],
+      "n_clusters": 1,
+      "n_products": 4,
+      "name": "Group 43"
+    },
+    {
+      "cluster_ids": [
+        52,
+        55
+      ],
+      "n_clusters": 2,
+      "n_products": 78,
+      "name": "Group 44"
+    },
+    {
+      "cluster_ids": [
+        1,
+        104
+      ],
+      "n_clusters": 2,
+      "n_products": 51,
+      "name": "Group 45"
+    },
+    {
+      "cluster_ids": [
+        262,
+        263,
+        280
+      ],
+      "n_clusters": 3,
+      "n_products": 804,
+      "name": "Group 46"
+    },
+    {
+      "cluster_ids": [
+        32,
+        277
+      ],
+      "n_clusters": 2,
+      "n_products": 109,
+      "name": "Group 47"
+    },
+    {
+      "cluster_ids": [
+        36,
+        242
+      ],
+      "n_clusters": 2,
+      "n_products": 88,
+      "name": "Group 48"
+    },
+    {
+      "cluster_ids": [
+        266,
+        267,
+        268
+      ],
+      "n_clusters": 3,
+      "n_products": 2983,
+      "name": "Group 49"
+    },
+    {
+      "cluster_ids": [
+        257
+      ],
+      "n_clusters": 1,
+      "n_products": 21,
+      "name": "Group 50"
+    },
+    {
+      "cluster_ids": [
+        31,
+        34
+      ],
+      "n_clusters": 2,
+      "n_products": 35,
+      "name": "Group 51"
+    },
+    {
+      "cluster_ids": [
+        274,
+        275
+      ],
+      "n_clusters": 2,
+      "n_products": 6565,
+      "name": "Group 52"
+    },
+    {
+      "cluster_ids": [
+        133
+      ],
+      "n_clusters": 1,
+      "n_products": 24,
+      "name": "Group 53"
+    },
+    {
+      "cluster_ids": [
+        278
+      ],
+      "n_clusters": 1,
+      "n_products": 29,
+      "name": "Group 54"
+    },
+    {
+      "cluster_ids": [
+        227
+      ],
+      "n_clusters": 1,
+      "n_products": 3,
+      "name": "Group 55"
+    },
+    {
+      "cluster_ids": [
+        132
+      ],
+      "n_clusters": 1,
+      "n_products": 7,
+      "name": "Group 56"
+    },
+    {
+      "cluster_ids": [
+        223
+      ],
+      "n_clusters": 1,
+      "n_products": 13,
+      "name": "Group 57"
+    },
+    {
+      "cluster_ids": [
+        208,
+        281
+      ],
+      "n_clusters": 2,
+      "n_products": 22,
+      "name": "Group 58"
+    },
+    {
+      "cluster_ids": [
+        130,
+        135
+      ],
+      "n_clusters": 2,
+      "n_products": 42,
+      "name": "Group 59"
+    },
+    {
+      "cluster_ids": [
+        220
+      ],
+      "n_clusters": 1,
+      "n_products": 115,
+      "name": "Group 60"
+    },
+    {
+      "cluster_ids": [
+        122,
+        209
+      ],
+      "n_clusters": 2,
+      "n_products": 28,
+      "name": "Group 61"
+    },
+    {
+      "cluster_ids": [
+        205,
+        207
+      ],
+      "n_clusters": 2,
+      "n_products": 93,
+      "name": "Group 62"
+    },
+    {
+      "cluster_ids": [
+        126
+      ],
+      "n_clusters": 1,
+      "n_products": 10,
+      "name": "Group 63"
+    },
+    {
+      "cluster_ids": [
+        139,
+        239
+      ],
+      "n_clusters": 2,
+      "n_products": 58,
+      "name": "Group 64"
+    },
+    {
+      "cluster_ids": [
+        206,
+        289
+      ],
+      "n_clusters": 2,
+      "n_products": 31,
+      "name": "Group 65"
+    },
+    {
+      "cluster_ids": [
+        125,
+        127
+      ],
+      "n_clusters": 2,
+      "n_products": 27,
+      "name": "Group 66"
+    },
+    {
+      "cluster_ids": [
+        123,
+        124
+      ],
+      "n_clusters": 2,
+      "n_products": 30,
+      "name": "Group 67"
+    },
+    {
+      "cluster_ids": [
+        121
+      ],
+      "n_clusters": 1,
+      "n_products": 16,
+      "name": "Group 68"
+    },
+    {
+      "cluster_ids": [
+        221
+      ],
+      "n_clusters": 1,
+      "n_products": 14,
+      "name": "Group 69"
+    },
+    {
+      "cluster_ids": [
+        222
+      ],
+      "n_clusters": 1,
+      "n_products": 26,
+      "name": "Group 70"
+    },
+    {
+      "cluster_ids": [
+        81
+      ],
+      "n_clusters": 1,
+      "n_products": 49,
+      "name": "Group 71"
+    },
+    {
+      "cluster_ids": [
+        157
+      ],
+      "n_clusters": 1,
+      "n_products": 33,
+      "name": "Group 72"
+    },
+    {
+      "cluster_ids": [
+        160,
+        290
+      ],
+      "n_clusters": 2,
+      "n_products": 103,
+      "name": "Group 73"
+    },
+    {
+      "cluster_ids": [
+        84,
+        85,
+        98
+      ],
+      "n_clusters": 3,
+      "n_products": 128,
+      "name": "Group 74"
+    },
+    {
+      "cluster_ids": [
+        158,
+        159,
+        161,
+        162
+      ],
+      "n_clusters": 4,
+      "n_products": 421,
+      "name": "Group 75"
+    },
+    {
+      "cluster_ids": [
+        80,
+        82,
+        83,
+        86
+      ],
+      "n_clusters": 4,
+      "n_products": 909,
+      "name": "Group 76"
+    },
+    {
+      "cluster_ids": [
+        107
+      ],
+      "n_clusters": 1,
+      "n_products": 91,
+      "name": "Group 77"
+    },
+    {
+      "cluster_ids": [
+        78,
+        153
+      ],
+      "n_clusters": 2,
+      "n_products": 99,
+      "name": "Group 78"
+    },
+    {
+      "cluster_ids": [
+        145,
+        179,
+        180,
+        181,
+        183
+      ],
+      "n_clusters": 5,
+      "n_products": 1323,
+      "name": "Group 79"
+    },
+    {
+      "cluster_ids": [
+        142,
+        144
+      ],
+      "n_clusters": 2,
+      "n_products": 516,
+      "name": "Group 80"
+    },
+    {
+      "cluster_ids": [
+        79,
+        151
+      ],
+      "n_clusters": 2,
+      "n_products": 82,
+      "name": "Group 81"
+    },
+    {
+      "cluster_ids": [
+        75,
+        77
+      ],
+      "n_clusters": 2,
+      "n_products": 72,
+      "name": "Group 82"
+    },
+    {
+      "cluster_ids": [
+        154
+      ],
+      "n_clusters": 1,
+      "n_products": 4,
+      "name": "Group 83"
+    },
+    {
+      "cluster_ids": [
+        66,
+        67,
+        68
+      ],
+      "n_clusters": 3,
+      "n_products": 115,
+      "name": "Group 84"
+    },
+    {
+      "cluster_ids": [
+        69
+      ],
+      "n_clusters": 1,
+      "n_products": 80,
+      "name": "Group 85"
+    },
+    {
+      "cluster_ids": [
+        64
+      ],
+      "n_clusters": 1,
+      "n_products": 6,
+      "name": "Group 86"
+    },
+    {
+      "cluster_ids": [
+        65
+      ],
+      "n_clusters": 1,
+      "n_products": 15,
+      "name": "Group 87"
+    },
+    {
+      "cluster_ids": [
+        184
+      ],
+      "n_clusters": 1,
+      "n_products": 15,
+      "name": "Group 88"
+    },
+    {
+      "cluster_ids": [
+        22
+      ],
+      "n_clusters": 1,
+      "n_products": 2,
+      "name": "Group 89"
+    },
+    {
+      "cluster_ids": [
+        185,
+        189,
+        190
+      ],
+      "n_clusters": 3,
+      "n_products": 177,
+      "name": "Group 90"
+    },
+    {
+      "cluster_ids": [
+        21
+      ],
+      "n_clusters": 1,
+      "n_products": 5,
+      "name": "Group 91"
+    },
+    {
+      "cluster_ids": [
+        24
+      ],
+      "n_clusters": 1,
+      "n_products": 1,
+      "name": "Group 92"
+    },
+    {
+      "cluster_ids": [
+        14,
+        23
+      ],
+      "n_clusters": 2,
+      "n_products": 18,
+      "name": "Group 93"
+    },
+    {
+      "cluster_ids": [
+        171,
+        173
+      ],
+      "n_clusters": 2,
+      "n_products": 73,
+      "name": "Group 94"
+    },
+    {
+      "cluster_ids": [
+        15
+      ],
+      "n_clusters": 1,
+      "n_products": 24,
+      "name": "Group 95"
+    },
+    {
+      "cluster_ids": [
+        164
+      ],
+      "n_clusters": 1,
+      "n_products": 39,
+      "name": "Group 96"
+    },
+    {
+      "cluster_ids": [
+        166,
+        167
+      ],
+      "n_clusters": 2,
+      "n_products": 102,
+      "name": "Group 97"
+    },
+    {
+      "cluster_ids": [
+        13,
+        172
+      ],
+      "n_clusters": 2,
+      "n_products": 31,
+      "name": "Group 98"
+    },
+    {
+      "cluster_ids": [
+        37
+      ],
+      "n_clusters": 1,
+      "n_products": 71,
+      "name": "Group 99"
+    },
+    {
+      "cluster_ids": [
+        39,
+        45
+      ],
+      "n_clusters": 2,
+      "n_products": 49,
+      "name": "Group 100"
+    },
+    {
+      "cluster_ids": [
+        38,
+        46,
+        47
+      ],
+      "n_clusters": 3,
+      "n_products": 236,
+      "name": "Group 101"
+    },
+    {
+      "cluster_ids": [
+        25,
+        29
+      ],
+      "n_clusters": 2,
+      "n_products": 89,
+      "name": "Group 102"
+    },
+    {
+      "cluster_ids": [
+        44
+      ],
+      "n_clusters": 1,
+      "n_products": 15,
+      "name": "Group 103"
+    },
+    {
+      "cluster_ids": [
+        246,
+        247
+      ],
+      "n_clusters": 2,
+      "n_products": 85,
+      "name": "Group 104"
+    },
+    {
+      "cluster_ids": [
+        30,
+        43
+      ],
+      "n_clusters": 2,
+      "n_products": 133,
+      "name": "Group 105"
+    },
+    {
+      "cluster_ids": [
+        41
+      ],
+      "n_clusters": 1,
+      "n_products": 11,
+      "name": "Group 106"
+    },
+    {
+      "cluster_ids": [
+        26,
+        248
+      ],
+      "n_clusters": 2,
+      "n_products": 184,
+      "name": "Group 107"
+    },
+    {
+      "cluster_ids": [
+        243
+      ],
+      "n_clusters": 1,
+      "n_products": 185,
+      "name": "Group 108"
+    },
+    {
+      "cluster_ids": [
+        249,
+        251,
+        259
+      ],
+      "n_clusters": 3,
+      "n_products": 341,
+      "name": "Group 109"
+    },
+    {
+      "cluster_ids": [
+        252,
+        270
+      ],
+      "n_clusters": 2,
+      "n_products": 554,
+      "name": "Group 110"
+    },
+    {
+      "cluster_ids": [
+        250,
+        254
+      ],
+      "n_clusters": 2,
+      "n_products": 209,
+      "name": "Group 111"
+    },
+    {
+      "cluster_ids": [
+        258,
+        265,
+        269
+      ],
+      "n_clusters": 3,
+      "n_products": 222,
+      "name": "Group 112"
+    },
+    {
+      "cluster_ids": [
+        244,
+        245
+      ],
+      "n_clusters": 2,
+      "n_products": 15,
+      "name": "Group 113"
+    },
+    {
+      "cluster_ids": [
+        253
+      ],
+      "n_clusters": 1,
+      "n_products": 10,
+      "name": "Group 114"
+    },
+    {
+      "cluster_ids": [
+        255,
+        256
+      ],
+      "n_clusters": 2,
+      "n_products": 385,
+      "name": "Group 115"
+    },
+    {
+      "cluster_ids": [
+        229
+      ],
+      "n_clusters": 1,
+      "n_products": 4,
+      "name": "Group 116"
+    },
+    {
+      "cluster_ids": [
+        228,
+        230
+      ],
+      "n_clusters": 2,
+      "n_products": 68,
+      "name": "Group 117"
+    },
+    {
+      "cluster_ids": [
+        204
+      ],
+      "n_clusters": 1,
+      "n_products": 13,
+      "name": "Group 118"
+    },
+    {
+      "cluster_ids": [
+        203
+      ],
+      "n_clusters": 1,
+      "n_products": 34,
+      "name": "Group 119"
+    },
+    {
+      "cluster_ids": [
+        225,
+        226
+      ],
+      "n_clusters": 2,
+      "n_products": 233,
+      "name": "Group 120"
+    },
+    {
+      "cluster_ids": [
+        235
+      ],
+      "n_clusters": 1,
+      "n_products": 21,
+      "name": "Group 121"
+    },
+    {
+      "cluster_ids": [
+        210,
+        211
+      ],
+      "n_clusters": 2,
+      "n_products": 42,
+      "name": "Group 122"
+    },
+    {
+      "cluster_ids": [
+        196
+      ],
+      "n_clusters": 1,
+      "n_products": 13,
+      "name": "Group 123"
+    },
+    {
+      "cluster_ids": [
+        236,
+        237,
+        241
+      ],
+      "n_clusters": 3,
+      "n_products": 507,
+      "name": "Group 124"
+    },
+    {
+      "cluster_ids": [
+        224
+      ],
+      "n_clusters": 1,
+      "n_products": 5,
+      "name": "Group 125"
+    },
+    {
+      "cluster_ids": [
+        238,
+        240
+      ],
+      "n_clusters": 2,
+      "n_products": 88,
+      "name": "Group 126"
+    },
+    {
+      "cluster_ids": [
+        214,
+        232,
+        234
+      ],
+      "n_clusters": 3,
+      "n_products": 563,
+      "name": "Group 127"
+    },
+    {
+      "cluster_ids": [
+        191,
+        212,
+        213
+      ],
+      "n_clusters": 3,
+      "n_products": 945,
+      "name": "Group 128"
+    },
+    {
+      "cluster_ids": [
+        215,
+        231
+      ],
+      "n_clusters": 2,
+      "n_products": 400,
+      "name": "Group 129"
+    },
+    {
+      "cluster_ids": [
+        194,
+        197
+      ],
+      "n_clusters": 2,
+      "n_products": 85,
+      "name": "Group 130"
+    },
+    {
+      "cluster_ids": [
+        219,
+        233
+      ],
+      "n_clusters": 2,
+      "n_products": 50,
+      "name": "Group 131"
+    },
+    {
+      "cluster_ids": [
+        195,
+        218
+      ],
+      "n_clusters": 2,
+      "n_products": 47,
+      "name": "Group 132"
+    },
+    {
+      "cluster_ids": [
+        192,
+        193
+      ],
+      "n_clusters": 2,
+      "n_products": 159,
+      "name": "Group 133"
+    },
+    {
+      "cluster_ids": [
+        216,
+        217
+      ],
+      "n_clusters": 2,
+      "n_products": 77,
+      "name": "Group 134"
+    },
+    {
+      "cluster_ids": [
+        200
+      ],
+      "n_clusters": 1,
+      "n_products": 33,
+      "name": "Group 135"
+    },
+    {
+      "cluster_ids": [
+        199,
+        201
+      ],
+      "n_clusters": 2,
+      "n_products": 136,
+      "name": "Group 136"
+    },
+    {
+      "cluster_ids": [
+        198,
+        202
+      ],
+      "n_clusters": 2,
+      "n_products": 16,
+      "name": "Group 137"
+    },
+    {
+      "cluster_ids": [
+        136
+      ],
+      "n_clusters": 1,
+      "n_products": 2,
+      "name": "Group 138"
+    },
+    {
+      "cluster_ids": [
+        91
+      ],
+      "n_clusters": 1,
+      "n_products": 16,
+      "name": "Group 139"
+    },
+    {
+      "cluster_ids": [
+        92,
+        140,
+        141
+      ],
+      "n_clusters": 3,
+      "n_products": 101,
+      "name": "Group 140"
+    },
+    {
+      "cluster_ids": [
+        96
+      ],
+      "n_clusters": 1,
+      "n_products": 17,
+      "name": "Group 141"
+    },
+    {
+      "cluster_ids": [
+        95,
+        97
+      ],
+      "n_clusters": 2,
+      "n_products": 28,
+      "name": "Group 142"
+    },
+    {
+      "cluster_ids": [
+        137,
+        138
+      ],
+      "n_clusters": 2,
+      "n_products": 172,
+      "name": "Group 143"
+    },
+    {
+      "cluster_ids": [
+        94
+      ],
+      "n_clusters": 1,
+      "n_products": 138,
+      "name": "Group 144"
+    },
+    {
+      "cluster_ids": [
+        93
+      ],
+      "n_clusters": 1,
+      "n_products": 28,
+      "name": "Group 145"
+    },
+    {
+      "cluster_ids": [
+        155,
+        156
+      ],
+      "n_clusters": 2,
+      "n_products": 56,
+      "name": "Group 146"
+    },
+    {
+      "cluster_ids": [
+        72
+      ],
+      "n_clusters": 1,
+      "n_products": 25,
+      "name": "Group 147"
+    },
+    {
+      "cluster_ids": [
+        182
+      ],
+      "n_clusters": 1,
+      "n_products": 9,
+      "name": "Group 148"
+    },
+    {
+      "cluster_ids": [
+        73
+      ],
+      "n_clusters": 1,
+      "n_products": 48,
+      "name": "Group 149"
+    },
+    {
+      "cluster_ids": [
+        99
+      ],
+      "n_clusters": 1,
+      "n_products": 19,
+      "name": "Group 150"
+    },
+    {
+      "cluster_ids": [
+        76
+      ],
+      "n_clusters": 1,
+      "n_products": 11,
+      "name": "Group 151"
+    },
+    {
+      "cluster_ids": [
+        74
+      ],
+      "n_clusters": 1,
+      "n_products": 15,
+      "name": "Group 152"
+    },
+    {
+      "cluster_ids": [
+        70,
+        71
+      ],
+      "n_clusters": 2,
+      "n_products": 53,
+      "name": "Group 153"
+    },
+    {
+      "cluster_ids": [
+        174,
+        175
+      ],
+      "n_clusters": 2,
+      "n_products": 28,
+      "name": "Group 154"
+    },
+    {
+      "cluster_ids": [
+        62,
+        63
+      ],
+      "n_clusters": 2,
+      "n_products": 26,
+      "name": "Group 155"
+    },
+    {
+      "cluster_ids": [
+        177,
+        187
+      ],
+      "n_clusters": 2,
+      "n_products": 15,
+      "name": "Group 156"
+    },
+    {
+      "cluster_ids": [
+        186
+      ],
+      "n_clusters": 1,
+      "n_products": 259,
+      "name": "Group 157"
+    },
+    {
+      "cluster_ids": [
+        176,
+        178
+      ],
+      "n_clusters": 2,
+      "n_products": 138,
+      "name": "Group 158"
+    },
+    {
+      "cluster_ids": [
+        188
+      ],
+      "n_clusters": 1,
+      "n_products": 18,
+      "name": "Group 159"
+    }
+  ],
+  "unassigned": [],
+  "total_clusters": 291,
+  "total_products": 41885,
+  "metadata": {
+    "method": "rf_agglomerative",
+    "linkage": "complete",
+    "distance_threshold": 0.2,
+    "prob_threshold_equiv": 0.8,
+    "trained_on": "nike_mens",
+    "applied_to": "ua",
+    "n_zones": 159,
+    "n_unassigned": 0
+  }
+}

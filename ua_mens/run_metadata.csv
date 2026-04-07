@@ -1,0 +1,2 @@
+brand,gender,cluster_threshold,min_products_per_cluster,min_discounted_per_cluster,fdr_alpha,baseline_freq_pct,baseline_depth_pct,n_products,n_discounted,n_clusters,n_testable_freq,n_testable_depth,n_significant_freq,n_significant_depth,time_pairwise_s,time_linkage_s,time_total_s
+ua,mens,8,14,10,0.05,39.20257848871911,21.851125827021807,41885,16420,291,243,209,105,101,14.14095950126648,34.32052183151245,48.46148133277893

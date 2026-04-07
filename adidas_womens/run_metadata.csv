@@ -1,0 +1,2 @@
+brand,gender,cluster_threshold,min_products_per_cluster,min_discounted_per_cluster,fdr_alpha,baseline_freq_pct,baseline_depth_pct,n_products,n_discounted,n_clusters,n_testable_freq,n_testable_depth,n_significant_freq,n_significant_depth,time_pairwise_s,time_linkage_s,time_total_s
+adidas,womens,8,14,10,0.05,40.73609787895502,33.99044455266889,19943,8124,316,242,148,10,17,4.435437917709351,6.267315864562988,10.702753782272339

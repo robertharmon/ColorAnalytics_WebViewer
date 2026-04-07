@@ -1,0 +1,2 @@
+brand,gender,cluster_threshold,min_products_per_cluster,min_discounted_per_cluster,fdr_alpha,baseline_freq_pct,baseline_depth_pct,n_products,n_discounted,n_clusters,n_testable_freq,n_testable_depth,n_significant_freq,n_significant_depth,time_pairwise_s,time_linkage_s,time_total_s
+adidas,mens,8,14,10,0.05,39.78857229463474,32.39816244563843,26392,10501,340,268,197,6,12,6.579013347625732,12.713303089141846,19.292316436767578

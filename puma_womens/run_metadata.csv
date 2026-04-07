@@ -1,0 +1,2 @@
+brand,gender,cluster_threshold,min_products_per_cluster,min_discounted_per_cluster,fdr_alpha,baseline_freq_pct,baseline_depth_pct,n_products,n_discounted,n_clusters,n_testable_freq,n_testable_depth,n_significant_freq,n_significant_depth,time_pairwise_s,time_linkage_s,time_total_s
+puma,womens,8,14,10,0.05,51.30898924002373,42.289844470133644,11803,6056,220,152,113,75,38,2.6698224544525146,1.9800465106964111,4.649868965148926
